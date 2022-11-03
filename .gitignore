@@ -1,0 +1,4 @@
+*.mtl
+*.obj
+.ipynb_checkpoints
+.bz2
