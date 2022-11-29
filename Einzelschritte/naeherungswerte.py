@@ -1,4 +1,5 @@
 
+import math
 import sqlite3
 import numpy as np
 import cv2 as cv
@@ -13,12 +14,15 @@ def naeherungswerte(datenbank):
     liste as (SELECT a.bid abid, b.bid bbid, a.pid pid, a.x ax, a.y ay, b.x bx,  b.y by FROM passpunktpos a, passpunktpos b WHERE a.pid = b.pid and a.bid > b.bid),
     bester as (SELECT abid, bbid FROM liste group by abid, bbid order by count(*) desc limit 1)
     SELECT liste.*, (select pfad from bilder where liste.abid = bid), (select pfad from bilder where liste.bbid = bid) FROM liste, bester where liste.abid = bester.abid and liste.bbid = bester.bbid""")
-    liste = cur.fetchall()
+    passpunkt_liste = cur.fetchall()
+
+    cur.execute("UPDATE bilder SET lx = 0, ly = 0, lz = 0, lrx = 0, lry = 0, lrz = 0 WHERE bid = ?;",
+                (passpunkt_liste[0][0],))
 
     pts1 = []
     pts2 = []
 
-    for eintrag in liste:
+    for eintrag in passpunkt_liste:
         bild1, bild2, pid, ax, ay, bx, by, pfad1, pfad2 = eintrag
         pts1.append([float(ax), float(ay)])
         pts2.append([float(bx), float(by)])
@@ -28,49 +32,18 @@ def naeherungswerte(datenbank):
     pts1 = np.array(pts1)
     pts2 = np.array(pts2)
 
-    A_gesamt = []
-    for i in range(len(pts1)):
-        ul = pts1[i][0]
-        vl = pts1[i][1]
-        ur = pts2[i][0]
-        vr = pts2[i][1]
-        A_gesamt.append([ul*ur, ul*vr, ul, vl*ur, vl*vr, vl, ur, vr, 1])
-    A_gesamt = np.array(A_gesamt)
+    F, mask = cv.findFundamentalMat(
+        pts1, pts2, cv.FM_RANSAC)
+    pts1 = pts1[mask.ravel() == 1]
+    pts2 = pts2[mask.ravel() == 1]
+    passpunkt_liste = list(np.array(passpunkt_liste)[mask.ravel() == 1])
 
-    inlayers_best = []
+    #F, _, _ = findF(pts1, pts2)
 
-    def fund_matrix(indices):
-        # source: https://youtu.be/zX5NeY-GTO0?t=1028
-        _, _, V = np.linalg.svd(A_gesamt[indices])
-        f = V[8]
-        F = f.reshape(3, 3).T
-        F = F * (1/F[2, 2])
-        return F
+    print(len(pts1))
 
-    # RANSAC
-    for _ in range(10):
-        random = choices(range(len(pts1)), k=8)
-        F = fund_matrix(random)
-
-        # source: https://youtu.be/izpYAwJ0Hlw?t=269
-        # eigenwert, f = np.linalg.eig(A.T@A)
-        # f = f[np.argmin(eigenwert)]
-        # F = f.reshape(3, 3).T
-        #F = F * (1/F[2, 2])
-
-        inlayers = []
-        for i in range(len(pts1)):
-            e = np.array([pts1[i][0], pts1[i][1], 1]
-                         ).T@F @ np.array([pts2[i][0], pts2[i][1], 1])
-            # print(e)
-            if e*e < 1:
-                inlayers.append(i)
-        # print(len(inlayers))
-        if len(inlayers_best) < len(inlayers):
-            inlayers_best = inlayers
-    # print(len(inlayers_best))
-    F = fund_matrix(inlayers_best)
     print(F)
+
     K = np.array([[3000, 0, 2000],
                  [0, 3000, 1500],
                  [0, 0, 1]])
@@ -80,6 +53,131 @@ def naeherungswerte(datenbank):
     img1 = cv.imread(pfad1, 0)
     img2 = cv.imread(pfad2, 0)
 
+    R_t_0 = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
+    R_t_1 = np.empty((3, 4))
+    P1 = np.matmul(K, R_t_0)
+    P2 = np.empty((3, 4))
+
+    retval, R, t, mask = cv.recoverPose(E, pts1, pts2, K)
+    R_t_1[:3, :3] = np.matmul(R, R_t_0[:3, :3])
+    R_t_1[:3, 3] = R_t_0[:3, 3] + np.matmul(R_t_0[:3, :3], t.ravel())
+
+    r_angles = rotationMatrixToEulerAngles(R)
+    cur.execute("UPDATE bilder SET lx = ?, ly = ?, lz = ?, lrx = ?, lry = ?, lrz = ? WHERE bid = ?;",
+                (float(t[0]), float(t[1]), float(t[2]), r_angles[0],
+                 r_angles[1], r_angles[2], passpunkt_liste[0][1]))
+
+    print(r_angles*180/3.41)
+    #print("The R_t_0 \n" + str(R_t_0))
+    #print("The R_t_1 \n" + str(R_t_1))
+    P2 = np.matmul(K, R_t_1)
+    pts1 = np.transpose(pts1)
+    pts2 = np.transpose(pts2)
+    points_3d = cv.triangulatePoints(P1, P2, pts1, pts2)
+    points_3d /= points_3d[3]
+
+    for passpunkt, x, y, z in zip(passpunkt_liste, points_3d[0], points_3d[1], points_3d[2]):
+        # print(passpunkt)
+        db.execute("UPDATE passpunkte SET x=?, y=?, z=? WHERE pid = ?",
+                   (x, y, z, passpunkt[2]))
+
+    db.commit()
+    cur.close()
+    db.close()
+
+
+def rotationMatrixToEulerAngles(R):
+    # source: https://learnopencv.com/rotation-matrix-to-euler-angles/
+    # assert (isRotationMatrix(R))
+
+    sy = math.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
+
+    singular = sy < 1e-6
+
+    if not singular:
+        x = math.atan2(R[2, 1], R[2, 2])
+        y = math.atan2(-R[2, 0], sy)
+        z = math.atan2(R[1, 0], R[0, 0])
+    else:
+        x = math.atan2(-R[1, 2], R[1, 1])
+        y = math.atan2(-R[2, 0], sy)
+        z = 0
+
+    return np.array([x, y, z])
+
+
+def findF(pts1, pts2):
+    # source: https://slideplayer.com/slide/3275895/
+    # literatur: https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=601246
+    T = np.array([[2/4000, 0, -1], [0, 2/3000, -1], [0, 0, 1]])
+    invT = np.linalg.inv(T)
+
+    pts1T = (T@np.c_[pts1, np.ones(len(pts1))].T).T
+    pts2T = (T@np.c_[pts2, np.ones(len(pts2))].T).T
+
+    A_gesamt = []
+    for i in range(len(pts1T)):
+        ul = pts1T[i][0]
+        vl = pts1T[i][1]
+        ur = pts2T[i][0]
+        vr = pts2T[i][1]
+        A_gesamt.append([ur*ul, ur*vl, ur, vr*ul, vr*vl, vr, ul, vl, 1])
+    A_gesamt = np.array(A_gesamt)
+
+    inlayers_best = []
+
+    def fund_matrix(indices):
+        # source: https://youtu.be/zX5NeY-GTO0?t=1028
+        _, _, V = np.linalg.svd(A_gesamt[indices])
+        F = V[:, 8].reshape(3, 3).T
+        # print(F)
+        U, D, V = np.linalg.svd(F)
+        #print(U, D, V)
+        F = U @ np.diag([D[0], D[1], 0]) @ V.T
+        F = invT@F@T
+        F = F * (1/F[2, 2])
+        return F
+
+    # RANSAC
+    for _ in range(200):
+        random = choices(range(len(pts1)), k=8)
+        F = fund_matrix(random)
+
+        # source: https://youtu.be/izpYAwJ0Hlw?t=269
+        # eigenwert, f = np.linalg.eig(A.T@A)
+        # f = f[np.argmin(eigenwert)]
+        # F = f.reshape(3, 3).T
+        # F = F * (1/F[2, 2])
+
+        inlayers = []
+        for i in range(len(pts1)):
+            e = np.array([pts1[i][0], pts1[i][1], 1]
+                         ).T@F @ np.array([pts2[i][0], pts2[i][1], 1])
+            # print(e)
+            if e*e < 1000000000:
+                inlayers.append(i)
+        # print(len(inlayers))
+        if len(inlayers_best) < len(inlayers):
+            inlayers_best = inlayers
+    print(len(inlayers_best))
+    pts1 = pts1[inlayers_best]
+    pts2 = pts2[inlayers_best]
+    F = fund_matrix(inlayers_best)
+    return F, pts1, pts2
+
+
+def safePoints(points_3d):
+    with open('test.xyz', 'w') as f:
+        for i in range(len(points_3d[0])):
+            f.write(str(points_3d[0][i]) + ' ' +
+                    str(points_3d[1][i]) + ' ' + str(points_3d[2][i])+'\n')
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    ax.scatter(points_3d[0], points_3d[1], points_3d[2])
+    plt.show()
+
+
+def drawEpi(img1, img2, pts1, pts2, F):
     def drawlines(img1, img2, lines, pts1, pts2):
         ''' img1 - image on which we draw the epilines for the points in img2
             lines - corresponding epilines '''

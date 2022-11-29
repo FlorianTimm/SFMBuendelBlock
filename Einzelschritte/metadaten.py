@@ -21,7 +21,13 @@ def metadaten(datenbank, glob_pfad):
             z NUMBER,
             rx NUMBER,
             ry NUMBER,
-            rz NUMBER
+            rz NUMBER,
+            lx NUMBER, 
+            ly NUMBER,
+            lz NUMBER,
+            lrx NUMBER, 
+            lry NUMBER,
+            lrz NUMBER
             )""")
 
     db.execute("""CREATE TABLE IF NOT EXISTS kameras (

@@ -23,7 +23,7 @@ def find_aruco(datenbank):
 
     cur = db.cursor()
     cur.execute(
-        "SELECT bid, pfad, pixelx, pixely FROM bilder left join kameras on kamera = kid")
+        "SELECT bid, pfad FROM bilder left join kameras on kamera = kid")
     bilder = cur.fetchall()
 
     LUT_IN = [0, 158, 216, 255]
@@ -35,7 +35,7 @@ def find_aruco(datenbank):
 
     markers = set()
     for bild in bilder:
-        id, pfad, width, heigth = bild
+        id, pfad = bild
         cv_img = cv2.imread(pfad)
         tmp = cv2.LUT(cv_img, lut)
         gray = cv2.cvtColor(tmp, cv2.COLOR_BGR2GRAY)
