@@ -10,66 +10,94 @@ from random import choices
 def naeherungswerte(datenbank):
     db = sqlite3.connect(datenbank)
     cur = db.cursor()
-    cur.execute("""WITH
-    liste as (SELECT a.bid abid, b.bid bbid, a.pid pid, a.x ax, a.y ay, b.x bx,  b.y by FROM passpunktpos a, passpunktpos b WHERE a.pid = b.pid and a.bid > b.bid),
-    bester as (SELECT abid, bbid FROM liste group by abid, bbid order by count(*) desc limit 1)
-    SELECT liste.*, (select pfad from bilder where liste.abid = bid), (select pfad from bilder where liste.bbid = bid) FROM liste, bester where liste.abid = bester.abid and liste.bbid = bester.bbid""")
-    passpunkt_liste = cur.fetchall()
 
-    cur.execute("UPDATE bilder SET lx = 0, ly = 0, lz = 0, lrx = 0, lry = 0, lrz = 0 WHERE bid = ?;",
-                (passpunkt_liste[0][0],))
+    cur.execute("""CREATE TABLE IF NOT EXISTS bildpaare (
+        bid1 INTEGER REFERENCES bilder(bid),
+        bid2 INTEGER REFERENCES bilder(bid),
+        lx NUMBER, 
+        ly NUMBER,
+        lz NUMBER,
+        lrx NUMBER, 
+        lry NUMBER,
+        lrz NUMBER
+    )""")
+
+    cur.execute("""WITH
+    auswahl as (SELECT a.bid abid, b.bid bbid FROM passpunktpos a, passpunktpos b WHERE a.pid = b.pid and a.bid > b.bid group by a.bid, b.bid having count(*) >= 2 order by count(*) desc)
+    SELECT abid, bbid, bild1.pfad bild1, bild2.pfad bild2, bild1.kamera kid1, bild2.kamera kid2 FROM auswahl
+    LEFT JOIN bilder AS bild1 ON abid = bild1.bid
+    LEFT JOIN bilder AS bild2 ON bbid = bild2.bid""")
+    bildpaare = cur.fetchall()
+
+    for eintrag in bildpaare:
+        bild1, bild2, pfad1, pfad2, kid1, kid2 = eintrag
+        pair_pictures(db, bild1, bild2, pfad1, pfad2, kid1, kid2)
+
+    # cur.execute("UPDATE bilder SET lx = 0, ly = 0, lz = 0, lrx = 0, lry = 0, lrz = 0 WHERE bid = ?;",
+    #            (passpunkt_liste[0][0],))
+    db.commit()
+    cur.close()
+    db.close()
+
+
+def pair_pictures(db: sqlite3.Connection, bild1, bild2, pfad1, pfad2, kid1, kid2):
+    print(pfad1, pfad2)
+    cur = db.cursor()
+    cur.execute("""SELECT a.pid pid, a.x ax, a.y ay, b.x bx,  b.y by FROM passpunktpos a, passpunktpos b WHERE a.pid = b.pid and a.bid = ? AND b.bid = ?""", (bild1, bild2)),
+    passpunkt_liste = cur.fetchall()
 
     pts1 = []
     pts2 = []
 
     for eintrag in passpunkt_liste:
-        bild1, bild2, pid, ax, ay, bx, by, pfad1, pfad2 = eintrag
+        pid, ax, ay, bx, by = eintrag
         pts1.append([float(ax), float(ay)])
         pts2.append([float(bx), float(by)])
-
     print(len(pts1))
 
     pts1 = np.array(pts1)
     pts2 = np.array(pts2)
 
-    F, mask = cv.findFundamentalMat(
-        pts1, pts2, cv.FM_RANSAC)
+    F, mask = cv.findFundamentalMat(pts1, pts2, cv.FM_RANSAC)
     pts1 = pts1[mask.ravel() == 1]
     pts2 = pts2[mask.ravel() == 1]
     passpunkt_liste = list(np.array(passpunkt_liste)[mask.ravel() == 1])
 
-    #F, _, _ = findF(pts1, pts2)
+    # F, _, _ = findF(pts1, pts2)
 
     print(len(pts1))
 
     print(F)
+    K1 = get_kameramatrix(cur, kid1)
+    K2 = get_kameramatrix(cur, kid2)
 
-    K = np.array([[3000, 0, 2000],
-                 [0, 3000, 1500],
-                 [0, 0, 1]])
-    E = K.T @ F @ K
+    E = K1.T @ F @ K2
     print(E)
 
-    img1 = cv.imread(pfad1, 0)
-    img2 = cv.imread(pfad2, 0)
-
-    R_t_0 = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
-    R_t_1 = np.empty((3, 4))
-    P1 = np.matmul(K, R_t_0)
-    P2 = np.empty((3, 4))
-
-    retval, R, t, mask = cv.recoverPose(E, pts1, pts2, K)
-    R_t_1[:3, :3] = np.matmul(R, R_t_0[:3, :3])
-    R_t_1[:3, 3] = R_t_0[:3, 3] + np.matmul(R_t_0[:3, :3], t.ravel())
+    # TODO: nur eine Kameramatrix
+    retval, R, t, mask = cv.recoverPose(E, pts1, pts2, K1)
 
     r_angles = rotationMatrixToEulerAngles(R)
-    cur.execute("UPDATE bilder SET lx = ?, ly = ?, lz = ?, lrx = ?, lry = ?, lrz = ? WHERE bid = ?;",
-                (float(t[0]), float(t[1]), float(t[2]), r_angles[0],
-                 r_angles[1], r_angles[2], passpunkt_liste[0][1]))
+    cur.execute("INSERT INTO bildpaare (bid1, bid2, lx, ly, lz, lrx, lry, lrz) VALUES (?,?,?,?,?,?,?,?);",
+                (bild1, bild2, float(t[0]), float(t[1]), float(t[2]), r_angles[0],
+                 r_angles[1], r_angles[2]))
 
     print(r_angles*180/3.41)
-    #print("The R_t_0 \n" + str(R_t_0))
-    #print("The R_t_1 \n" + str(R_t_1))
+
+
+def get_kameramatrix(cur: sqlite3.Cursor, kid):
+    cur.execute(
+        """SELECT c, x0, y0 FROM kameras WHERE kid = ? LIMIT 1""", (kid,))
+    c, x0, y0 = cur.fetchone()
+    c = 3000
+    return np.array([[c, 0, x0],
+                     [0, c, y0],
+                     [0, 0, 1]])
+
+
+def calc_points():
+    # print("The R_t_0 \n" + str(R_t_0))
+    # print("The R_t_1 \n" + str(R_t_1))
     P2 = np.matmul(K, R_t_1)
     pts1 = np.transpose(pts1)
     pts2 = np.transpose(pts2)
@@ -81,9 +109,7 @@ def naeherungswerte(datenbank):
         db.execute("UPDATE passpunkte SET x=?, y=?, z=? WHERE pid = ?",
                    (x, y, z, passpunkt[2]))
 
-    db.commit()
-    cur.close()
-    db.close()
+    drawEpi(img1, img2, pts1.T, pts2.T, F)
 
 
 def rotationMatrixToEulerAngles(R):
@@ -132,14 +158,14 @@ def findF(pts1, pts2):
         F = V[:, 8].reshape(3, 3).T
         # print(F)
         U, D, V = np.linalg.svd(F)
-        #print(U, D, V)
+        # print(U, D, V)
         F = U @ np.diag([D[0], D[1], 0]) @ V.T
-        F = invT@F@T
+        F = T.T@F@T
         F = F * (1/F[2, 2])
         return F
 
     # RANSAC
-    for _ in range(200):
+    for _ in range(100):
         random = choices(range(len(pts1)), k=8)
         F = fund_matrix(random)
 
@@ -185,6 +211,7 @@ def drawEpi(img1, img2, pts1, pts2, F):
         img1 = cv.cvtColor(img1, cv.COLOR_GRAY2BGR)
         img2 = cv.cvtColor(img2, cv.COLOR_GRAY2BGR)
         for r, pt1, pt2 in zip(lines, pts1, pts2):
+            print(pt1)
             color = tuple(np.random.randint(0, 255, 3).tolist())
             x0, y0 = map(int, [0, -r[2]/r[1]])
             x1, y1 = map(int, [c, -(r[2]+r[0]*c)/r[1]])

@@ -21,13 +21,7 @@ def metadaten(datenbank, glob_pfad):
             z NUMBER,
             rx NUMBER,
             ry NUMBER,
-            rz NUMBER,
-            lx NUMBER, 
-            ly NUMBER,
-            lz NUMBER,
-            lrx NUMBER, 
-            lry NUMBER,
-            lrz NUMBER
+            rz NUMBER
             )""")
 
     db.execute("""CREATE TABLE IF NOT EXISTS kameras (
@@ -53,10 +47,10 @@ def metadaten(datenbank, glob_pfad):
                     60.+float(value[2][2])/3600.
                 e = float(value[4][0])+float(value[4][1]) / \
                     60.+float(value[4][2])/3600.
-                z = float(value[6])
-                u = utm.from_latlon(n, e, 32)
-                x = float(u[0])
-                y = float(u[1])
+                h = float(value[6])
+                #x,y,_,_ = utm.from_latlon(n, e, 32)
+                #z = h
+                x, y, z = to_ecef(n, e, h)
                 continue
             if 'Model' == ExifTags.TAGS.get(tag, tag):
                 model = str(value)
@@ -94,6 +88,18 @@ def metadaten(datenbank, glob_pfad):
             "INSERT OR REPLACE INTO bilder (kamera, pfad, x, y, z, rx, ry, rz) VALUES ((SELECT kid FROM kameras WHERE model = ? and c = ? LIMIT 1), ?,?,?,?,?,?,?)", (model, c, bild, x, y, z, rx, ry, rz))
     db.commit()
     db.close()
+
+
+def to_ecef(lat, lon, h):
+    lat = math.radians(lat)
+    lon = math.radians(lon)
+    a = 6378137.0
+    b = 6356752.314245
+    n = a**2 / math.sqrt(a**2*math.cos(lat)**2 + b**2*math.sin(lat)**2)
+    x = (n+h)*math.cos(lat)*math.cos(lon)
+    y = (n+h)*math.cos(lat)*math.sin(lon)
+    z = (b**2/a**2*n+h)*math.sin(lat)
+    return x, y, z
 
 
 if __name__ == "__main__":

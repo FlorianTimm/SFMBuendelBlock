@@ -23,7 +23,7 @@ def find_sift(datenbank):
     cur = db.cursor()
     cur.execute(
         "SELECT bid, pfad FROM bilder left join kameras on kamera = kid")
-    bilder = cur.fetchall()[:3]
+    bilder = cur.fetchall()
 
     sift = cv2.SIFT_create()
 
