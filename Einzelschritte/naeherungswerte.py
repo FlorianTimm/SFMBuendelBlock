@@ -6,6 +6,8 @@ import cv2 as cv
 from matplotlib import pyplot as plt
 from random import choices
 
+from etc import rotationMatrixToEulerAngles
+
 
 def naeherungswerte(datenbank):
     db = sqlite3.connect(datenbank)
@@ -14,10 +16,10 @@ def naeherungswerte(datenbank):
     cur.execute("""CREATE TABLE IF NOT EXISTS bildpaare (
         bid1 INTEGER REFERENCES bilder(bid),
         bid2 INTEGER REFERENCES bilder(bid),
-        lx NUMBER, 
+        lx NUMBER,
         ly NUMBER,
         lz NUMBER,
-        lrx NUMBER, 
+        lrx NUMBER,
         lry NUMBER,
         lrz NUMBER
     )""")
@@ -87,11 +89,11 @@ def pair_pictures(db: sqlite3.Connection, bild1, bild2, pfad1, pfad2, kid1, kid2
 
 def get_kameramatrix(cur: sqlite3.Cursor, kid):
     cur.execute(
-        """SELECT c, x0, y0 FROM kameras WHERE kid = ? LIMIT 1""", (kid,))
-    c, x0, y0 = cur.fetchone()
-    c = 3000
-    return np.array([[c, 0, x0],
-                     [0, c, y0],
+        """SELECT fx, fy, x0, y0 FROM kameras WHERE kid = ? LIMIT 1""", (kid,))
+    fx, fy, x0, y0 = cur.fetchone()
+
+    return np.array([[fx, 0, x0],
+                     [0, fy, y0],
                      [0, 0, 1]])
 
 
@@ -110,26 +112,6 @@ def calc_points():
                    (x, y, z, passpunkt[2]))
 
     drawEpi(img1, img2, pts1.T, pts2.T, F)
-
-
-def rotationMatrixToEulerAngles(R):
-    # source: https://learnopencv.com/rotation-matrix-to-euler-angles/
-    # assert (isRotationMatrix(R))
-
-    sy = math.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
-
-    singular = sy < 1e-6
-
-    if not singular:
-        x = math.atan2(R[2, 1], R[2, 2])
-        y = math.atan2(-R[2, 0], sy)
-        z = math.atan2(R[1, 0], R[0, 0])
-    else:
-        x = math.atan2(-R[1, 2], R[1, 1])
-        y = math.atan2(-R[2, 0], sy)
-        z = 0
-
-    return np.array([x, y, z])
 
 
 def findF(pts1, pts2):

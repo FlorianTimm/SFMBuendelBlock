@@ -27,12 +27,13 @@ def metadaten(datenbank, glob_pfad):
     db.execute("""CREATE TABLE IF NOT EXISTS kameras (
             kid INTEGER PRIMARY KEY AUTOINCREMENT,
             model TEXT,
-            c NUMBER,
+            fx NUMBER,
+            fy NUMBER,
             x0 NUMBER DEFAULT 0,
             y0 NUMBER DEFAULT 0,
             pixelx INTEGER,
             pixely INTEGER,
-            UNIQUE (model, c))""")
+            UNIQUE (model, fx))""")
 
     for bild in bilder:
         print("Bild")
@@ -40,7 +41,7 @@ def metadaten(datenbank, glob_pfad):
         img = Image.open(bild)
         exif = img._getexif()
         model = ""
-        c, x, y, z, rx, ry, rz, width, height = 0, 0, 0, 0, 0, 0, 0, 0, 0
+        fx, fy, x0, y0, x, y, z, rx, ry, rz, width, height = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
         for tag, value in exif.items():
             if 'GPSInfo' == ExifTags.TAGS.get(tag, tag):
                 n = float(value[2][0])+float(value[2][1]) / \
@@ -56,13 +57,16 @@ def metadaten(datenbank, glob_pfad):
                 model = str(value)
                 continue
             if 'FocalLength' == ExifTags.TAGS.get(tag, tag):
-                c = float(value)
+                fx = float(value)
+                fy = float(value)
                 continue
             if 'ExifImageWidth' == ExifTags.TAGS.get(tag, tag):
                 width = int(value)
+                x0 = width / 2
                 continue
             if 'ExifImageHeight' == ExifTags.TAGS.get(tag, tag):
                 height = int(value)
+                y0 = height / 2
                 continue
             #print(ExifTags.TAGS.get(tag, tag), value)
         with open(bild, "rb") as f:
@@ -83,9 +87,9 @@ def metadaten(datenbank, glob_pfad):
         # bildDaten.append(float(tree[0][0].attrib['{http://www.dji.com/drone-dji/1.0/}RelativeAltitude'])/180*math.pi)
 
         db.execute(
-            "INSERT OR IGNORE INTO kameras (model, c, pixelx, pixely) VALUES (?,?,?,?)", (model, c, width, height))
+            "INSERT OR IGNORE INTO kameras (model, fx, fy, y0, x0, pixelx, pixely) VALUES (?,?,?,?,?,?,?)", (model, fx, fy, x0, y0, width, height))
         db.execute(
-            "INSERT OR REPLACE INTO bilder (kamera, pfad, x, y, z, rx, ry, rz) VALUES ((SELECT kid FROM kameras WHERE model = ? and c = ? LIMIT 1), ?,?,?,?,?,?,?)", (model, c, bild, x, y, z, rx, ry, rz))
+            "INSERT OR REPLACE INTO bilder (kamera, pfad, x, y, z, rx, ry, rz) VALUES ((SELECT kid FROM kameras WHERE model = ? and fx = ? LIMIT 1), ?,?,?,?,?,?,?)", (model, fx, bild, x, y, z, rx, ry, rz))
     db.commit()
     db.close()
 
