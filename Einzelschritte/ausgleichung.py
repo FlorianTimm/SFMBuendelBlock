@@ -2,26 +2,27 @@ import sqlite3
 import numpy as np
 from scipy.optimize import least_squares
 from scipy.sparse import lil_matrix
-from scipy.spatial.transform import Rotation as R
+from scipy.spatial.transform import Rotation
 
 from etc import eulerAnglesToRotationMatrix
 
 
 def project(points, camera_params, image_params):
     """Convert 3-D points to 2-D by projecting onto images."""
-    # rot = eulerAnglesToRotationMatrix(
-    #    image_params[:, 0], image_params[:, 1], image_params[:, 2])
-    rot = R.from_euler('xyz', image_params[:, :3], degrees=False)
-    points_proj = rot.apply(points)
-    points_proj += image_params[:, 3:6]
-    points_proj = -points_proj[:, :2] / points_proj[:, 2, np.newaxis]
-    f = camera_params[:, 0]
-    k1 = camera_params[:, 2]
-    k2 = camera_params[:, 3]
-    n = np.sum(points_proj**2, axis=1)
-    r = 1 + k1 * n + k2 * n**2
-    points_proj *= (r * f)[:, np.newaxis]
-    return points_proj
+    # rot =
+    points_proj = []
+
+    for i, (p, cam, img) in enumerate(zip(points, camera_params, image_params)):
+        K = np.array([
+            [cam[0],   0, cam[2]],
+            [0, cam[1], cam[3]],
+            [0,   0,  1]])
+        R = eulerAnglesToRotationMatrix(img[0], img[1], img[2])
+        t = img[3:6]
+        p2d = K@R.T@(p-t)
+        p2d /= p2d[2]
+        points_proj.append(p2d[:2])
+    return np.array(points_proj)
 
 
 def fun(params, n_cameras, n_images, n_points, camera_indices, image_indices, point_indices, points_2d):
@@ -32,10 +33,13 @@ def fun(params, n_cameras, n_images, n_points, camera_indices, image_indices, po
     camera_params = params[:n_cameras * 4].reshape((n_cameras, 4))
     image_params = params[n_cameras * 4: n_cameras *
                           4+n_images*6].reshape((n_images, 6))
+    # print(image_params)
     points_3d = params[n_cameras*4+n_images*6:].reshape((n_points, 3))
-
+    # print(points_2d[0])
     points_proj = project(
         points_3d[point_indices], camera_params[camera_indices], image_params[image_indices])
+    # print(points_proj[0])
+    print((points_proj - points_2d).ravel())
     return (points_proj - points_2d).ravel()
 
 
@@ -68,7 +72,7 @@ def ausgleichung(datenbank):
     cur.execute("""SELECT kid, fx, fy, x0, y0 FROM kameras""")
     cameras = np.array(cur.fetchall())
     # TODO: wahre Werte laden
-    cameras = np.array([[1, 3000, 3000, 2000, 1500]])
+    cameras = np.array([[1, -3000, -3000, 2000, 1500]])
     camera_params = cameras[:, 1:]
     n_cameras = len(camera_params)
 
@@ -82,7 +86,7 @@ def ausgleichung(datenbank):
     points_3d = passpunkte[:, 1:]
     n_points = len(points_3d)
 
-    cur.execute("""SELECT p.pid, p.bid, bilder.kamera, p.x, 3000-p.y FROM passpunktpos p join bilder on bilder.bid = p.bid join kameras on kameras.kid = bilder.kamera ORDER BY RANDOM() LIMIT 1000""")
+    cur.execute("""SELECT p.pid, p.bid, bilder.kamera, p.x, 3000-p.y FROM passpunktpos p join bilder on bilder.bid = p.bid join kameras on kameras.kid = bilder.kamera""")  # ORDER BY RANDOM() LIMIT 1000""")
     messungen = np.array(cur.fetchall())
     points_2d = messungen[:, 3:]
 

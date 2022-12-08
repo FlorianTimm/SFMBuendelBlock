@@ -6,12 +6,15 @@ import utm
 from xml.etree import ElementTree as ET
 import numpy as np
 import math
+from random import choices
 
 
-def metadaten(datenbank, glob_pfad):
+def metadaten(datenbank, glob_pfad, maxnumber: int = 0):
     print("Metadaten")
     db = sqlite3.connect(datenbank)
     bilder = glob(glob_pfad)
+    if not maxnumber == 0:
+        bilder = choices(bilder, k=maxnumber)
     db.execute("""CREATE TABLE IF NOT EXISTS bilder (
             bid INTEGER PRIMARY KEY AUTOINCREMENT,
             pfad TEXT UNIQUE,
@@ -74,16 +77,17 @@ def metadaten(datenbank, glob_pfad):
             start = s.find('<x:xmpmeta')
             end = s.find('</x:xmpmeta')
             xmp = s[start:end+12].replace("\\n", "\n")
-            tree = ET.XML(xmp)
-            # print(xmp)
+            if xmp:
+                tree = ET.XML(xmp)
+                # print(xmp)
 
-            rx = float(
-                tree[0][0].attrib['{http://www.dji.com/drone-dji/1.0/}FlightRollDegree'])/180*math.pi
+                rx = float(
+                    tree[0][0].attrib['{http://www.dji.com/drone-dji/1.0/}FlightRollDegree'])/180*math.pi
 
-            ry = float(
-                tree[0][0].attrib['{http://www.dji.com/drone-dji/1.0/}FlightPitchDegree'])/180*math.pi
-            rz = float(
-                tree[0][0].attrib['{http://www.dji.com/drone-dji/1.0/}FlightYawDegree'])/180*math.pi
+                ry = float(
+                    tree[0][0].attrib['{http://www.dji.com/drone-dji/1.0/}FlightPitchDegree'])/180*math.pi
+                rz = float(
+                    tree[0][0].attrib['{http://www.dji.com/drone-dji/1.0/}FlightYawDegree'])/180*math.pi
         # bildDaten.append(float(tree[0][0].attrib['{http://www.dji.com/drone-dji/1.0/}RelativeAltitude'])/180*math.pi)
 
         db.execute(
