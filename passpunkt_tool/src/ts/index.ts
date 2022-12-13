@@ -5,6 +5,7 @@ import Static from 'ol/source/ImageStatic';
 import View from 'ol/View';
 import { Extent, getCenter } from 'ol/extent';
 import { MapBrowserEvent } from 'ol';
+import { saveAs } from "file-saver";
 
 import '../../node_modules/ol/ol.css'
 import '../style/style.css';
@@ -38,7 +39,7 @@ function imageSize(url: string): Promise<{ width: number, height: number }> {
 async function createSource(url: string): Promise<{ view: View; layer: Static; }> {
     let size = await imageSize(url)
     console.log(size)
-    const extent: Extent = [0, 0, size.width, size.height,];
+    const extent: Extent = [0, 0, size.width, size.height];
     const projection = new Projection({
         code: 'xkcd-image',
         units: 'pixels',
@@ -148,4 +149,19 @@ fileSelect?.addEventListener("change", async () => {
         activeImage = 0
     }
 
+    fileSelect.files = null
+
+})
+
+
+document.getElementById("speichern")?.addEventListener("click", () => {
+    let exp: { bilder: string[], passpunkte: Passpunkt[] } = {
+        bilder: [],
+        passpunkte: passpunkte
+    }
+    for (let file of files) {
+        exp.bilder.push(file.name)
+    }
+    let blob = new Blob([JSON.stringify(exp)], { type: "application/json" });
+    saveAs(blob, "daten.json")
 })
