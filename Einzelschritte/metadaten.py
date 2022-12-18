@@ -24,7 +24,13 @@ def metadaten(datenbank, glob_pfad, maxnumber: int = 0):
             z NUMBER,
             rx NUMBER,
             ry NUMBER,
-            rz NUMBER
+            rz NUMBER,
+            lx NUMBER,
+            ly NUMBER,
+            lz NUMBER,
+            lrx NUMBER,
+            lry NUMBER,
+            lrz NUMBER
             )""")
 
     db.execute("""CREATE TABLE IF NOT EXISTS kameras (
@@ -52,14 +58,14 @@ def metadaten(datenbank, glob_pfad, maxnumber: int = 0):
                 e = float(value[4][0])+float(value[4][1]) / \
                     60.+float(value[4][2])/3600.
                 h = float(value[6])
-                #x,y,_,_ = utm.from_latlon(n, e, 32)
-                #z = h
+                # x,y,_,_ = utm.from_latlon(n, e, 32)
+                # z = h
                 x, y, z = to_ecef(n, e, h)
                 continue
             if 'Model' == ExifTags.TAGS.get(tag, tag):
                 model = str(value)
                 continue
-            if 'FocalLength' == ExifTags.TAGS.get(tag, tag):
+            if 'FocalLengthIn35mmFilm' == ExifTags.TAGS.get(tag, tag):
                 fx = float(value)
                 fy = float(value)
                 continue
@@ -71,7 +77,7 @@ def metadaten(datenbank, glob_pfad, maxnumber: int = 0):
                 height = int(value)
                 y0 = height / 2
                 continue
-            #print(ExifTags.TAGS.get(tag, tag), value)
+            # print(ExifTags.TAGS.get(tag, tag), value)
         with open(bild, "rb") as f:
             s = str(f.read())
             start = s.find('<x:xmpmeta')
@@ -90,8 +96,11 @@ def metadaten(datenbank, glob_pfad, maxnumber: int = 0):
                     tree[0][0].attrib['{http://www.dji.com/drone-dji/1.0/}FlightYawDegree'])/180*math.pi
         # bildDaten.append(float(tree[0][0].attrib['{http://www.dji.com/drone-dji/1.0/}RelativeAltitude'])/180*math.pi)
 
+        fx = fx / 18. * x0
+        fy = fy / 18. * x0
+
         db.execute(
-            "INSERT OR IGNORE INTO kameras (model, fx, fy, y0, x0, pixelx, pixely) VALUES (?,?,?,?,?,?,?)", (model, fx, fy, x0, y0, width, height))
+            "INSERT OR IGNORE INTO kameras (model, fx, fy, x0, y0, pixelx, pixely) VALUES (?,?,?,?,?,?,?)", (model, fx, fy, x0, y0, width, height))
         db.execute(
             "INSERT OR REPLACE INTO bilder (kamera, pfad, x, y, z, rx, ry, rz) VALUES ((SELECT kid FROM kameras WHERE model = ? and fx = ? LIMIT 1), ?,?,?,?,?,?,?)", (model, fx, bild, x, y, z, rx, ry, rz))
     db.commit()

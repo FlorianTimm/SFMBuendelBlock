@@ -9,9 +9,13 @@ def find_aruco(datenbank):
     db.execute("""CREATE TABLE IF NOT EXISTS passpunkte (
             pid INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT UNIQUE,
+            type TEXT,
             x NUMBER,
             y NUMBER,
-            z NUMBER
+            z NUMBER,
+            lx NUMBER,
+            ly NUMBER,
+            lz NUMBER
             )""")
     db.execute("""CREATE TABLE IF NOT EXISTS passpunktpos (
             ppid INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,10 +51,13 @@ def find_aruco(datenbank):
 
         for nr in range(len(ids)):
             for cid in range(len(corners[nr][0])):
-                db.execute("INSERT OR IGNORE INTO passpunkte (name) VALUES (?)",
-                           (str(ids[nr][0]*10 + cid),))
+                name = 'aruco' + str(ids[nr][0]) + '-' + str(cid)
+                x = float(corners[nr][0][cid][0])
+                y = float(corners[nr][0][cid][1])
+                db.execute("INSERT OR IGNORE INTO passpunkte (name, type) VALUES (?, 'aruco')",
+                           (name,))
                 db.execute("INSERT OR REPLACE INTO passpunktpos (pid, bid, x, y) VALUES ((SELECT pid FROM passpunkte WHERE name = ?),?,?,?)",
-                           (str(ids[nr][0]*10 + cid), id, float(corners[nr][0][cid][0]), float(corners[nr][0][cid][1])))
+                           (name, id, x, y))
 
         # marked = aruco.drawDetectedMarkers(cv_img, corners, ids)
         # cv2.imshow('image', cv2.resize(marked, (800,600)))
@@ -62,4 +69,4 @@ def find_aruco(datenbank):
 
 if __name__ == "__main__":
     print('Testdaten')
-    find_aruco('./Entwicklung/eigenerAnsatz/Einzelschritte/datenbank.db')
+    find_aruco('./example_data/bildverband2/datenbank.db')
