@@ -112,5 +112,5 @@ def to_ecef(lat, lon, h):
 
 if __name__ == "__main__":
     print('Testdaten')
-    metadaten('./Entwicklung/eigenerAnsatz/Einzelschritte/datenbank.db',
-              './Entwicklung/eigenerAnsatz/bildverband2/*.JPG')
+    metadaten('./example_data/bildverband2/datenbank.db',
+              './example_data/bildverband2/*.JPG')
