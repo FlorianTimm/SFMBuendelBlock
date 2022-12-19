@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def find_sift(datenbank, width=600):
+def find_sift(datenbank, soll_width=600):
     db = sqlite3.connect(datenbank)
     db.execute("""CREATE TABLE IF NOT EXISTS passpunkte (
             pid INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,7 +36,7 @@ def find_sift(datenbank, width=600):
     for bild in bilder:
         id, pfad = bild
         img = cv2.imread(pfad)
-        scale_percent = width/img.shape[1]
+        scale_percent = soll_width/img.shape[1]
         width = int(img.shape[1] * scale_percent)
         height = int(img.shape[0] * scale_percent)
         dim = (width, height)
@@ -47,9 +47,10 @@ def find_sift(datenbank, width=600):
         print(pfad)
         gray_image1 = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
         kp, desc = sift.detectAndCompute(gray_image1, None)
-        pt = np.array([np.array(n.pt)/gray_image1.shape[1]
-                       for n in kp])
-        data.append({"id": id, "kp": kp, "desc": desc, "pt": pt})
+
+        pt = np.array([n.pt for n in kp])
+
+        data.append({"id": id, "desc": desc, "pt": pt})
 
     FLANN_INDEX_KDTREE = 1
     index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
@@ -102,7 +103,7 @@ def find_sift(datenbank, width=600):
             id, punkt = p
             kp = data[id]['pt'][punkt]
             db.execute(
-                "INSERT OR REPLACE INTO passpunktpos (pid, bid, x, y) VALUES (?,?,?,?)", (pid, data[id]["id"], kp[0], kp[1]))
+                "INSERT OR REPLACE INTO passpunktpos (pid, bid, x, y) VALUES (?,?,?,?)", (pid, data[id]["id"], kp[0]/soll_width, kp[1]/soll_width))
 
     db.commit()
     cur.close()

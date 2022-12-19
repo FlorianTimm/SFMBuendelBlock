@@ -38,8 +38,8 @@ def metadaten(datenbank, glob_pfad, maxnumber: int = 0):
             model TEXT,
             fx NUMBER,
             fy NUMBER,
-            x0 NUMBER DEFAULT 0,
-            y0 NUMBER DEFAULT 0,
+            x0 NUMBER,
+            y0 NUMBER,
             pixelx INTEGER,
             pixely INTEGER,
             UNIQUE (model, fx))""")
