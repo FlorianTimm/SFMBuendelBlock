@@ -100,9 +100,9 @@ def metadaten(datenbank, glob_pfad, maxnumber: int = 0):
         fy = fy / 18. * x0
 
         db.execute(
-            "INSERT OR IGNORE INTO kameras (model, fx, fy, x0, y0, pixelx, pixely) VALUES (?,?,?,?,?,?,?)", (model, fx, fy, x0, y0, width, height))
+            "INSERT OR IGNORE INTO kameras (model, fx, fy, x0, y0, pixelx, pixely) VALUES (?,?,?,?,?,?,?)", (model, fx/width, fy/width, x0/width, y0/width, width, height))
         db.execute(
-            "INSERT OR REPLACE INTO bilder (kamera, pfad, x, y, z, rx, ry, rz) VALUES ((SELECT kid FROM kameras WHERE model = ? and fx = ? LIMIT 1), ?,?,?,?,?,?,?)", (model, fx, bild, x, y, z, rx, ry, rz))
+            "INSERT OR REPLACE INTO bilder (kamera, pfad, x, y, z, rx, ry, rz) VALUES ((SELECT kid FROM kameras WHERE model = ? and fx = ? LIMIT 1), ?,?,?,?,?,?,?)", (model, fx/width, bild, x, y, z, rx, ry, rz))
     db.commit()
     db.close()
 

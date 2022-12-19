@@ -52,8 +52,8 @@ def find_aruco(datenbank):
         for nr in range(len(ids)):
             for cid in range(len(corners[nr][0])):
                 name = 'aruco' + str(ids[nr][0]) + '-' + str(cid)
-                x = float(corners[nr][0][cid][0])
-                y = float(corners[nr][0][cid][1])
+                x = float(corners[nr][0][cid][0]) / cv_img.shape[1]
+                y = float(corners[nr][0][cid][1]) / cv_img.shape[1]
                 db.execute("INSERT OR IGNORE INTO passpunkte (name, type) VALUES (?, 'aruco')",
                            (name,))
                 db.execute("INSERT OR REPLACE INTO passpunktpos (pid, bid, x, y) VALUES ((SELECT pid FROM passpunkte WHERE name = ?),?,?,?)",
