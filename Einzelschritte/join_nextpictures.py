@@ -4,7 +4,7 @@ import numpy as np
 from naeherungswerte import get_kameramatrix, reconstruct_one_point, cart2hom
 
 
-def join_pairs(datenbank):
+def join_nextpictures(datenbank):
     db = sqlite3.connect(datenbank)
     cur = db.cursor()
 
@@ -38,4 +38,4 @@ def join_pairs(datenbank):
 
 if __name__ == "__main__":
     print('Testdaten')
-    join_pairs('./example_data/bildverband2/datenbank.db')
+    join_nextpictures('./example_data/bildverband2/datenbank.db')
