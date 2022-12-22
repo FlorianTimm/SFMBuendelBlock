@@ -11,7 +11,7 @@ def join_nextpictures(datenbank):
     cur.execute("""SELECT b.bid, kamera FROM bilder b
         JOIN passpunktpos pp ON pp.bid = b.bid
         JOIN passpunkte p ON pp.pid = p.pid
-        WHERE b.lx IS NULL AND p.lx is not null group by b.bid  HAVING COUNT(*) > 4 order by count(*) DESC LIMIT 1""")
+        WHERE b.lx IS NULL AND p.lx is not null group by b.bid  HAVING COUNT(*) >= 4 order by count(*) DESC LIMIT 1""")
 
     bid, kid = cur.fetchone()
 
@@ -38,4 +38,4 @@ def join_nextpictures(datenbank):
 
 if __name__ == "__main__":
     print('Testdaten')
-    join_nextpictures('./example_data/bildverband2/datenbank.db')
+    join_nextpictures('./example_data/heilgarten.db')

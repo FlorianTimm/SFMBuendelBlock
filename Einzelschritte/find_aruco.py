@@ -27,7 +27,7 @@ def find_aruco(datenbank):
 
     cur = db.cursor()
     cur.execute(
-        "SELECT bid, pfad FROM bilder left join kameras on kamera = kid")
+        "SELECT bid, pfad FROM bilder")
     bilder = cur.fetchall()
 
     LUT_IN = [0, 158, 216, 255]
@@ -49,16 +49,19 @@ def find_aruco(datenbank):
         corners, ids, _ = aruco.detectMarkers(
             gray, aruco_dict, parameters=parameter)
 
-        for nr in range(len(ids)):
-            for cid in range(len(corners[nr][0])):
-                name = 'aruco' + str(ids[nr][0]) + '-' + str(cid)
-                x = float(corners[nr][0][cid][0]) / cv_img.shape[1]
-                y = float(corners[nr][0][cid][1]) / cv_img.shape[1]
-                db.execute("INSERT OR IGNORE INTO passpunkte (name, type) VALUES (?, 'aruco')",
-                           (name,))
-                db.execute("INSERT OR REPLACE INTO passpunktpos (pid, bid, x, y) VALUES ((SELECT pid FROM passpunkte WHERE name = ?),?,?,?)",
-                           (name, id, x, y))
-
+        try:
+            for nr in range(len(ids)):
+                for cid in range(len(corners[nr][0])):
+                    name = 'aruco' + str(ids[nr][0]) + '-' + str(cid)
+                    x = float(corners[nr][0][cid][0]) / cv_img.shape[1]
+                    y = float(corners[nr][0][cid][1]) / cv_img.shape[1]
+                    db.execute("INSERT OR IGNORE INTO passpunkte (name, type) VALUES (?, 'aruco')",
+                               (name,))
+                    db.execute("INSERT OR REPLACE INTO passpunktpos (pid, bid, x, y) VALUES ((SELECT pid FROM passpunkte WHERE name = ?),?,?,?)",
+                               (name, id, x, y))
+        except:
+            pass
+            #print(corners, ids)
         # marked = aruco.drawDetectedMarkers(cv_img, corners, ids)
         # cv2.imshow('image', cv2.resize(marked, (800,600)))
         # cv2.waitKey(0)
