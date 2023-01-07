@@ -45,7 +45,7 @@ def metadaten(datenbank, glob_pfad, maxnumber: int = 0):
             UNIQUE (model, fx))""")
 
     for bild in bilder:
-        print("Bild")
+        # print("Bild")
         bildDaten = []
         img = Image.open(bild)
         exif = img._getexif()

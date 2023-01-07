@@ -153,4 +153,4 @@ def bundle_adjustment(datenbank):
 if __name__ == "__main__":
     print('Testdaten')
     bundle_adjustment(
-        './example_data/bildverband2/datenbank.db')
+        './example_data/heilgarten.db')

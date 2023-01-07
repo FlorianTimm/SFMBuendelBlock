@@ -9,27 +9,27 @@ def join_nextpictures(datenbank):
     cur = db.cursor()
 
     cur.execute("""SELECT b.bid, kamera FROM bilder b
-        JOIN passpunktpos pp ON pp.bid = b.bid
-        JOIN passpunkte p ON pp.pid = p.pid
-        WHERE b.lx IS NULL AND p.lx is not null group by b.bid  HAVING COUNT(*) >= 4 order by count(*) DESC LIMIT 1""")
+            JOIN passpunktpos pp ON pp.bid = b.bid
+            JOIN passpunkte p ON pp.pid = p.pid
+            WHERE b.lx IS NULL AND p.lx is not null group by b.bid  HAVING COUNT(*) >= 4 order by count(*) DESC""")
+    daten = cur.fetchall()
 
-    bid, kid = cur.fetchone()
+    for bid, kid in daten:
+        cur.execute("""SELECT pp.x, pp.y, lx, ly, lz FROM passpunktpos pp
+            JOIN passpunkte p ON pp.pid = p.pid
+            WHERE pp.bid = ? AND p.lx is not null""", (bid, ))
 
-    cur.execute("""SELECT pp.x, pp.y, lx, ly, lz FROM passpunktpos pp
-        JOIN passpunkte p ON pp.pid = p.pid
-        WHERE pp.bid = ? AND p.lx is not null""", (bid, ))
+        passpunkte = np.array(cur.fetchall())
 
-    passpunkte = np.array(cur.fetchall())
+        K = get_kameramatrix(cur, bid)
 
-    K = get_kameramatrix(cur, bid)
+        _, r, t, _ = cv2.solvePnPRansac(
+            passpunkte[:, 2:], passpunkte[:, :2],  K, None)
 
-    _, r, t, _ = cv2.solvePnPRansac(
-        passpunkte[:, 2:], passpunkte[:, :2],  K, None)
+        cur.execute("UPDATE bilder SET lx = ?, ly = ?, lz = ?, lrx = ?, lry = ?, lrz = ? WHERE bid = ?;",
+                    (float(t[0]), float(t[1]), float(t[2]), float(r[0]), float(r[1]), float(r[2]), int(bid)))
 
-    cur.execute("UPDATE bilder SET lx = ?, ly = ?, lz = ?, lrx = ?, lry = ?, lrz = ? WHERE bid = ?;",
-                (float(t[0]), float(t[1]), float(t[2]), float(r[0]), float(r[1]), float(r[2]), int(bid)))
-
-    print(r, t)
+        print(r, t)
 
     db.commit()
     cur.close()

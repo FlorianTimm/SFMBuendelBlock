@@ -27,15 +27,17 @@ def join_nextcoords(datenbank):
 
     pneu = []
 
-    for pid, ppax, ppay, ppbx, ppby, alx, aly, alz, alrx, alry, alrz, afx, afy, ax0, ay0, blx, bly, blz, blrx, blry, blrz, bfx, bfy, bx0, by0 in neue:
+    print(f"Gefundendene Koordinaten: {len(neue)}")
 
-        R1, _ = cv2.Rodrigues(np.array([alrx, alry, alrz]))
+    for pid, ppax, ppay, ppbx, ppby, alx, aly, alz, alrx, alry, alrz, afx, afy, ax0, ay0, blx, bly, blz, blrx, blry, blrz, bfx, bfy, bx0, by0 in neue:
+        # print(alrx, alry, alrz, blrx, blry, blrz)
+        R1, _ = cv2.Rodrigues(np.float32([alrx, alry, alrz]))
         P1 = np.c_[R1, [alx, aly, alz]]
         K1 = np.array([[afx, 0, ax0],
                       [0, afy, ay0],
                       [0, 0, 1]])
 
-        R2, _ = cv2.Rodrigues(np.array([blrx, blry, blrz]))
+        R2, _ = cv2.Rodrigues(np.float32([blrx, blry, blrz]))
         P2 = np.c_[R2, [blx, bly, blz]]
         K2 = np.array([[bfx, 0, bx0],
                       [0, bfy, by0],
@@ -75,4 +77,4 @@ def join_nextcoords(datenbank):
 
 if __name__ == "__main__":
     print('Testdaten')
-    join_nextcoords('./example_data/bildverband2/datenbank.db')
+    join_nextcoords('./example_data/heilgarten.db')

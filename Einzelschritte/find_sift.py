@@ -29,6 +29,9 @@ def find_sift(datenbank, soll_width=600):
     cur.execute(
         "SELECT bid, pfad FROM bilder left join kameras on kamera = kid ORDER BY pfad DESC")
     bilder = cur.fetchall()
+    db.commit()
+    cur.close()
+    db.close()
 
     sift = cv2.SIFT_create()
 
@@ -48,68 +51,11 @@ def find_sift(datenbank, soll_width=600):
         gray_image1 = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
         kp, desc = sift.detectAndCompute(gray_image1, None)
 
-        pt = np.array([n.pt for n in kp])
-
-        data.append({"id": id, "desc": desc, "pt": pt})
-
-    FLANN_INDEX_KDTREE = 1
-    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
-    search_params = dict(checks=100)
-    flann = cv2.FlannBasedMatcher(index_params, search_params)
-
-    liste = {}
-    for i in range(len(bilder)):
-        for j in range(i+1, len(bilder)):
-            matches = flann.knnMatch(data[i]["desc"], data[j]["desc"], k=2)
-            good = []
-            # ratio test as per Lowe's paper
-            for k, (m, n) in enumerate(matches):
-                if m.distance < 0.8*n.distance:
-                    #liste[(j, m.trainIdx)] = (i, m.queryIdx)
-                    good.append(m)
-
-            paare = np.array([[m.queryIdx, m.trainIdx] for m in good])
-
-            kp1 = data[i]["pt"]
-            kp2 = data[j]["pt"]
-
-            # Constrain matches to fit homography
-            retval, mask = cv2.findHomography(
-                kp1[paare[:, 0]], kp2[paare[:, 1]], cv2.RANSAC, 100.0)
-            mask = mask.ravel()
-            paare = paare[mask == 1]
-            for p in paare:
-                liste[(j, p[1])] = (i, p[0])
-
-    # Suche Tracks
-    gruppen = []
-    for key in liste.keys():
-        unterliste = []
-        unterliste.append(key)
-        while True:
-            wert = liste[key]
-            unterliste.append(wert)
-            if wert in liste:
-                key = wert
-            else:
-                break
-        gruppen.append(unterliste)
-
-    for i, eintrag in enumerate(gruppen):
-        cur.execute("INSERT OR IGNORE INTO passpunkte (name, type) VALUES (?, 'SIFT') RETURNING pid",
-                    ('sift'+str(i),))
-        pid = cur.fetchone()[0]
-        for p in eintrag:
-            id, punkt = p
-            kp = data[id]['pt'][punkt]
-            db.execute(
-                "INSERT OR REPLACE INTO passpunktpos (pid, bid, x, y) VALUES (?,?,?,?)", (pid, data[id]["id"], kp[0]/soll_width, kp[1]/soll_width))
-
-    db.commit()
-    cur.close()
-    db.close()
+        pt = np.array([n.pt for n in kp])/soll_width
+        print(desc.shape, pt.shape)
+        np.savez_compressed(pfad + '.npz', id=id, desc=desc, pt=pt)
 
 
 if __name__ == "__main__":
     print('Testdaten')
-    find_sift('./example_data/bildverband2/datenbank.db', 1000)
+    find_sift('./example_data/heilgarten.db', 1000)

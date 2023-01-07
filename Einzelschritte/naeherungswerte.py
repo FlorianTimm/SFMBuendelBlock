@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import sqlite3
 import matplotlib.pyplot as plt
+from random import choices
 
 # functions derived from https://github.com/alyssaq/3Dreconstruction
 """
@@ -19,23 +20,40 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 def naeherungswerte(datenbank):
     db = sqlite3.connect(datenbank)
     cur = db.cursor()
+
+    cur.execute(
+        """UPDATE bilder SET lx = NULL, ly = NULL, lz = NULL, lrx = NULL, lry = NULL, lrz = NULL""")
+    cur.execute(
+        """UPDATE passpunkte SET lx = NULL, ly = NULL, lz = NULL""")
+
     cur.execute("""WITH
-    liste as (SELECT a.bid abid, b.bid bbid, a.pid pid, a.x ax, a.y ay, b.x bx,  b.y by FROM passpunktpos a, passpunktpos b WHERE a.pid = b.pid and a.bid > b.bid),
-    bester as (SELECT abid, bbid FROM liste group by abid, bbid order by count(*) desc limit 1)
+    liste as (SELECT a.bid abid, b.bid bbid, a.pid pid, a.x ax, a.y ay, b.x bx, b.y by, type FROM passpunktpos a, passpunktpos b, passpunkte p WHERE a.pid = b.pid and a.bid > b.bid and a.pid = p.pid),
+    bester as (SELECT abid, bbid FROM liste group by abid, bbid order by sum( CASE WHEN type = 'aruco' THEN 2 WHEN type = 'SIFT' THEN 1 END) desc limit 1)
     SELECT liste.* FROM liste, bester  where liste.abid = bester.abid and liste.bbid = bester.bbid""")
     liste = cur.fetchall()
 
     pts1 = []
     pts2 = []
     pids = []
+    weights = []
     bild1 = None
     bild2 = None
 
     for eintrag in liste:
-        bild1, bild2, pid, ax, ay, bx, by = eintrag
+        bild1, bild2, pid, ax, ay, bx, by, typ = eintrag
+        # print(eintrag)
         pids.append(pid)
         pts1.append([float(ax), float(ay)])
         pts2.append([float(bx), float(by)])
+
+        if (typ == "SIFT"):
+            weights.append(1)
+        elif (typ == "aruco"):
+            weights.append(2)
+        else:
+            weights.append(3)
+
+    pids = np.int32(pids)
 
     cur.execute("UPDATE bilder SET lx = 0, ly = 0, lz = 0, lrx = 0, lry = 0, lrz = 0 WHERE bid = ?;",
                 (bild1,))
@@ -52,18 +70,46 @@ def naeherungswerte(datenbank):
     # Hartley p257
     points1n = np.dot(np.linalg.inv(K1), points1)
     points2n = np.dot(np.linalg.inv(K2), points2)
-    #cv2.undistortPoints(pts1, intrinsic, None)[:,0,:].T
+    # cv2.undistortPoints(pts1, intrinsic, None)[:,0,:].T
+
+    print(len(points1n.T))
+
+    maxcount = 0
+    maxauswahl = 0
+
+    for i in range(1000):
+        auswahl = choices(range(len(weights)), weights, k=8)
+
+        E = compute_essential_normalized(
+            points1n[:, auswahl], points2n[:, auswahl])
+
+        mask = np.array([abs(points2n.T[i].T@E@points1n.T[i]) < 1
+                        for i in range(len(points2n.T))])
+
+        count = len(points2n.T[mask])
+        if count > maxcount:
+            maxcount = count
+            maxauswahl = mask
+
+    points1n = points1n.T[maxauswahl].T
+    points2n = points2n.T[maxauswahl].T
+    pids = pids[maxauswahl]
 
     E = compute_essential_normalized(points1n, points2n)
-    #E1 = structure.compute_essential_normalized(points1n, points2an)
+
     print('Computed essential matrix:', (-E / E[0][1]))
 
     P1 = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
 
     _, R, t, mask = cv2.recoverPose(E, points1n[:2].T, points2n[:2].T)
-    print(mask)
+
     R = np.linalg.inv(R)
     t = -R@t
+
+    mask = mask.ravel()
+    pids = pids.T[mask == 255].T
+    points1n = points1n.T[mask == 255].T
+    points2n = points2n.T[mask == 255].T
 
     rod, _ = cv2.Rodrigues(R)
 
@@ -73,8 +119,10 @@ def naeherungswerte(datenbank):
     P2 = np.c_[R, t]
     print(P2)
 
+    print(len(points1n.T))
+
     tripoints3d = reconstruct_points(points1n, points2n, P1, P2)
-    #tripoints3d = structure.linear_triangulation(points1n, points2n, P1, P2)
+    # tripoints3d = structure.linear_triangulation(points1n, points2n, P1, P2)
 
     fig = plt.figure()
     fig.suptitle('3D reconstructed', fontsize=16)
@@ -92,12 +140,14 @@ def naeherungswerte(datenbank):
     ax.set_zlim([-2, 3])
     plt.show()
 
-    daten = zip(tripoints3d[0], tripoints3d[1], tripoints3d[2], pids)
+    daten = zip(tripoints3d[0], tripoints3d[1], tripoints3d[2], np.int32(pids))
+    daten = [[d[0], d[1], d[2], int(d[3])] for d in daten]
     cur.executemany(
-        """UPDATE passpunkte SET lx = ?, ly = ?, lz = ? WHERE pid = ?""", daten)
+        "UPDATE passpunkte SET lx = ?, ly = ?, lz = ? WHERE pid = ?", daten)
+    print(cur.rowcount)
 
-    db.commit()
     cur.close()
+    db.commit()
     db.close()
 
 
@@ -114,7 +164,7 @@ def get_kameramatrix(cur: sqlite3.Cursor, bid):
 def cart2hom(arr):
     """ Convert catesian to homogenous points by appending a row of 1s
     :param arr: array of shape (num_dimension x num_points)
-    :returns: array of shape ((num_dimension+1) x num_points) 
+    :returns: array of shape ((num_dimension+1) x num_points)
     """
     if arr.ndim == 1:
         return np.hstack([arr, 1])
@@ -262,4 +312,5 @@ def linear_triangulation(p1, p2, m1, m2):
 
 if __name__ == "__main__":
     print('Testdaten')
-    naeherungswerte('./example_data/bildverband2/datenbank.db')
+    # naeherungswerte('./example_data/bildverband2/datenbank.db')
+    naeherungswerte('./example_data/heilgarten.db')
