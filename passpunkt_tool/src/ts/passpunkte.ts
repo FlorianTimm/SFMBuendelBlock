@@ -6,6 +6,8 @@ import View from 'ol/View';
 import { Extent, getCenter } from 'ol/extent';
 import { MapBrowserEvent } from 'ol';
 import { saveAs } from "file-saver";
+import Tool from './tool';
+import GUI from '.';
 
 type Passpunkt = {
     passpunkt: number,
@@ -14,11 +16,68 @@ type Passpunkt = {
     y: number
 }
 
-export default class PasspunktTool {
+export default class PasspunktTool extends Tool {
 
     private passpunkte: Passpunkt[] = []
     private selectPasspunkt: HTMLSelectElement;
     private files: File[] = []
+
+    constructor(gui: GUI) {
+        super(gui)
+        const layer = new ImageLayer({})
+
+        const map = new Map({
+            layers: [
+                layer
+            ],
+            target: 'map',
+
+        });
+
+        let passpunktNr = 0
+        this.selectPasspunkt = <HTMLSelectElement>document.getElementById("passpunkt")
+        map.on("click", (e: MapBrowserEvent<any>) => {
+            console.log(activeImage, e.coordinate, this.selectPasspunkt.value)
+            if (parseInt(this.selectPasspunkt.value) == -1) {
+                let neu = document.createElement("option")
+                neu.value = (passpunktNr++).toString()
+                neu.innerHTML = "Passpunkt " + neu.value
+                this.selectPasspunkt.appendChild(neu)
+                this.selectPasspunkt.selectedIndex = passpunktNr
+            }
+            this.passpunkte.push({
+                passpunkt: parseInt(this.selectPasspunkt.value),
+                image: activeImage,
+                x: e.coordinate[0],
+                y: e.coordinate[1]
+            })
+            this.refreshListe()
+        })
+        this.selectPasspunkt.addEventListener("change", this.refreshListe.bind(this))
+
+        let activeImage = -1
+
+        document.getElementById("speichern")?.addEventListener("click", () => {
+            let exp: { bilder: string[], passpunkte: Passpunkt[] } = {
+                bilder: [],
+                passpunkte: this.passpunkte
+            }
+            for (let file of this.files) {
+                exp.bilder.push(file.name)
+            }
+            let blob = new Blob([JSON.stringify(exp)], { type: "application/json" });
+            saveAs(blob, "daten.json")
+        })
+    }
+
+    stop() {
+
+    }
+
+    start() {
+
+    }
+
 
     private imageSize(url: string): Promise<{ width: number, height: number }> {
         const img = document.createElement("img");
@@ -85,88 +144,6 @@ export default class PasspunktTool {
             }
             liste?.appendChild(c)
         }
-    }
-
-    constructor() {
-
-        const layer = new ImageLayer({})
-
-        const map = new Map({
-            layers: [
-                layer
-            ],
-            target: 'map',
-
-        });
-
-        let passpunktNr = 0
-        this.selectPasspunkt = <HTMLSelectElement>document.getElementById("passpunkt")
-        map.on("click", (e: MapBrowserEvent<any>) => {
-            console.log(activeImage, e.coordinate, this.selectPasspunkt.value)
-            if (parseInt(this.selectPasspunkt.value) == -1) {
-                let neu = document.createElement("option")
-                neu.value = (passpunktNr++).toString()
-                neu.innerHTML = "Passpunkt " + neu.value
-                this.selectPasspunkt.appendChild(neu)
-                this.selectPasspunkt.selectedIndex = passpunktNr
-            }
-            this.passpunkte.push({
-                passpunkt: parseInt(this.selectPasspunkt.value),
-                image: activeImage,
-                x: e.coordinate[0],
-                y: e.coordinate[1]
-            })
-            this.refreshListe()
-        })
-        this.selectPasspunkt.addEventListener("change", this.refreshListe.bind(this))
-
-        const fileSelect = <HTMLInputElement>document.getElementById("OpenPicture")
-
-        let activeImage = -1
-
-        fileSelect?.addEventListener("change", async () => {
-            if (!fileSelect.files) return
-            for (let file of fileSelect.files) {
-                if (!file) return;
-                this.files.push(file)
-
-                let img = document.createElement('img')
-                img.src = URL.createObjectURL(file)
-                img.style.width = "90%"
-                img.style.display = "block"
-                let imgNr = this.files.length - 1
-                document.getElementById("nav")?.appendChild(img)
-                img.addEventListener("click", async () => {
-                    let daten = await this.createSource(img.src)
-                    layer.setSource(daten.layer);
-                    map.setView(daten.view)
-                    activeImage = imgNr
-                })
-            }
-            if (this.files.length > 0) {
-                let url = URL.createObjectURL(this.files[0])
-                let daten = await this.createSource(url)
-                layer.setSource(daten.layer);
-                map.setView(daten.view)
-                activeImage = 0
-            }
-
-            fileSelect.files = null
-
-        })
-
-
-        document.getElementById("speichern")?.addEventListener("click", () => {
-            let exp: { bilder: string[], passpunkte: Passpunkt[] } = {
-                bilder: [],
-                passpunkte: this.passpunkte
-            }
-            for (let file of this.files) {
-                exp.bilder.push(file.name)
-            }
-            let blob = new Blob([JSON.stringify(exp)], { type: "application/json" });
-            saveAs(blob, "daten.json")
-        })
     }
 
 }

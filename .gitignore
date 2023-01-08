@@ -5,3 +5,5 @@
 passpunkt_tool/node_modules
 *.db
 *.pyc
+projekte/
+Einzelschritte/__pycache__/

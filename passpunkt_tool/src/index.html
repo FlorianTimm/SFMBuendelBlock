@@ -11,11 +11,15 @@
 <body>
     <header>
         <h1>Passpunkt-Tool</h1>
-        <button id="speichern">Speichern</button>
+        <div id="toolSwitcher">
+            <select id="selectProjekt"></select>
+            <button id="buttonBilder" class="toolSwitcher">Bilder</button>
+            <button id="buttonPasspunkte" class="toolSwitcher">Passpunkte</button>
+            <button id="button3D" class="toolSwitcher">3D</button>
+        </div>
     </header>
     <div id="passpunkte" class="tool">
         <nav id="nav">
-            <input type='file' id="OpenPicture" multiple />
         </nav>
         <aside>
             <select id="passpunkt">
@@ -24,6 +28,15 @@
             <div id="passpunktListe"></div>
         </aside>
         <div id="map" class="map"></div>
+    </div>
+    <div id="bilder" class="tool">
+        <input type='file' id="OpenPicture" multiple />
+        <table id="bilderliste">
+
+        </table>
+    </div>
+    <div id="dreid" class="tool">
+
     </div>
 </body>
 

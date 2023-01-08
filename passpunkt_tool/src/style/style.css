@@ -19,7 +19,7 @@ body {
     font-family: Arial, Helvetica, sans-serif
 }
 
-.tool {
+div.tool {
     grid-area: tool
 }
 
@@ -29,6 +29,8 @@ body {
     grid-template-areas:
         "nav map side";
 }
+
+
 
 #map {
     grid-area: map;
@@ -48,8 +50,13 @@ aside {
     grid-area: side;
 }
 
-#speichern {
+#toolSwitcher {
     position: absolute;
     top: 10px;
     right: 10px;
+}
+
+#toolSwitcher button,
+#toolSwitcher select {
+    font-size: larger;
 }
