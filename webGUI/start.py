@@ -13,7 +13,7 @@ PROJEKTPATH = '../projekte/'
 
 @app.route("/")
 def hello():
-    return "Hello World! <a href='/passpunkt/index.html'>Passpunkt-Tool</a>"
+    return "Hello World! <a href='/tool/index.html'>Passpunkt-Tool</a>"
 
 
 @app.route('/tool/<path:path>')
@@ -58,5 +58,5 @@ def open_browser():
 
 
 if __name__ == "__main__":
-    #Timer(1, open_browser).start()
+    Timer(1, open_browser).start()
     app.run(port=2000)

@@ -12,11 +12,22 @@ html {
 body {
     display: grid;
     grid-template-rows: 5em 1fr;
+
+    grid-template-areas:
+        "head"
+        "tool";
+    font-family: Arial, Helvetica, sans-serif
+}
+
+.tool {
+    grid-area: tool
+}
+
+#passpunkte {
+    display: grid;
     grid-template-columns: 10em 1fr 10em;
     grid-template-areas:
-        "head head head"
-        "nav map aside";
-    font-family: Arial, Helvetica, sans-serif
+        "nav map side";
 }
 
 #map {
@@ -31,6 +42,10 @@ header {
 nav {
     grid-area: nav;
     color: #000;
+}
+
+aside {
+    grid-area: side;
 }
 
 #speichern {
