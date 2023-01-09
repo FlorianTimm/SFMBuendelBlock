@@ -1,4 +1,3 @@
-import BuilderGroup from 'ol/render/canvas/BuilderGroup';
 import '../../node_modules/ol/ol.css'
 import '../style/style.css';
 import BildUpload from './bildupload';

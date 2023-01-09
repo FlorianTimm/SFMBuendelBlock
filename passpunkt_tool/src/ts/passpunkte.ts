@@ -4,78 +4,159 @@ import Projection from 'ol/proj/Projection';
 import Static from 'ol/source/ImageStatic';
 import View from 'ol/View';
 import { Extent, getCenter } from 'ol/extent';
-import { MapBrowserEvent } from 'ol';
-import { saveAs } from "file-saver";
+import { Feature, MapBrowserEvent } from 'ol';
 import Tool from './tool';
 import GUI from '.';
+import ImageSource from 'ol/source/Image';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
+import { Bild, Passpunkt, PasspunktPosition } from './types';
+import { Point } from 'ol/geom';
+import {
+    Circle as CircleStyle,
+    Fill,
+    Stroke,
+    Style,
+    Text,
+} from 'ol/style.js';
 
-type Passpunkt = {
-    passpunkt: number,
-    image: number,
-    x: number,
-    y: number
-}
+
 
 export default class PasspunktTool extends Tool {
-
-    private passpunkte: Passpunkt[] = []
+    private passpunkte: PasspunktPosition[] = []
     private selectPasspunkt: HTMLSelectElement;
-    private files: File[] = []
+    private bildliste: HTMLDivElement;
+    private bilder: Bild[] = [];
+    private map: Map;
+    private activeImage: Bild | undefined
+    private layer: ImageLayer<ImageSource>;
+    private punktLayerSource: VectorSource;
+    private passpunktNr: number = 0
 
     constructor(gui: GUI) {
         super(gui)
-        const layer = new ImageLayer({})
-
-        const map = new Map({
+        this.layer = new ImageLayer({})
+        this.punktLayerSource = new VectorSource({})
+        let punktLayer = new VectorLayer<VectorSource>({
+            source: this.punktLayerSource,
+            style: (feat) => {
+                console.log(feat.getProperties())
+                return new Style({
+                    text: new Text({
+                        text: feat.get('name').toString(),
+                        font: '13px Calibri,sans-serif',
+                        fill: new Fill({ color: '#000' }),
+                        stroke: new Stroke({
+                            color: '#fff', width: 2
+                        }),
+                        offsetX: 9,
+                        offsetY: 8,
+                        textAlign: 'left'
+                    }),
+                    image: new CircleStyle({
+                        radius: 5,
+                        fill: new Fill({ color: 'rgba(255, 0, 0, 0.1)' }),
+                        stroke: new Stroke({ color: 'red', width: 1 }),
+                    }),
+                })
+            }
+        })
+        this.map = new Map({
             layers: [
-                layer
+                this.layer,
+                punktLayer
             ],
             target: 'map',
 
         });
 
-        let passpunktNr = 0
-        this.selectPasspunkt = <HTMLSelectElement>document.getElementById("passpunkt")
-        map.on("click", (e: MapBrowserEvent<any>) => {
-            console.log(activeImage, e.coordinate, this.selectPasspunkt.value)
-            if (parseInt(this.selectPasspunkt.value) == -1) {
-                let neu = document.createElement("option")
-                neu.value = (passpunktNr++).toString()
-                neu.innerHTML = "Passpunkt " + neu.value
-                this.selectPasspunkt.appendChild(neu)
-                this.selectPasspunkt.selectedIndex = passpunktNr
-            }
-            this.passpunkte.push({
-                passpunkt: parseInt(this.selectPasspunkt.value),
-                image: activeImage,
-                x: e.coordinate[0],
-                y: e.coordinate[1]
-            })
-            this.refreshListe()
-        })
+        this.bildliste = <HTMLDivElement>document.getElementById("passpunktBildListe")
+
+        this.selectPasspunkt = <HTMLSelectElement>document.getElementById("passpunktSelect")
+        this.map.on("click", this.passpunktClick.bind(this))
         this.selectPasspunkt.addEventListener("change", this.refreshListe.bind(this))
+    }
 
-        let activeImage = -1
+    private passpunktClick(e: MapBrowserEvent<any>) {
+        if (!this.activeImage) return;
 
-        document.getElementById("speichern")?.addEventListener("click", () => {
-            let exp: { bilder: string[], passpunkte: Passpunkt[] } = {
-                bilder: [],
-                passpunkte: this.passpunkte
-            }
-            for (let file of this.files) {
-                exp.bilder.push(file.name)
-            }
-            let blob = new Blob([JSON.stringify(exp)], { type: "application/json" });
-            saveAs(blob, "daten.json")
+        console.log(this.punktLayerSource.getFeaturesAtCoordinate(e.coordinate))
+
+        console.log(this.activeImage, e.coordinate, this.selectPasspunkt.value)
+        if (parseInt(this.selectPasspunkt.value) == -1) {
+            let neu = document.createElement("option")
+            neu.value = (this.passpunktNr++).toString()
+            neu.innerHTML = "Passpunkt " + neu.value
+            this.selectPasspunkt.appendChild(neu)
+            this.selectPasspunkt.selectedIndex = this.passpunktNr
+        }
+
+        this.passpunkte.push({
+            passpunkt: parseInt(this.selectPasspunkt.value),
+            name: this.selectPasspunkt.innerText,
+            image: this.activeImage.bid,
+            x: e.coordinate[0],
+            y: e.coordinate[1]
         })
+        this.refreshListe()
     }
 
     stop() {
 
     }
 
-    start() {
+    async start() {
+        this.bilder = await fetch("/api/" + this.gui.projekt + "/images/").then((res) => res.json())
+        this.bildliste.innerHTML = "";
 
+        for (let bild of this.bilder) {
+            let img = document.createElement("img")
+            img.src = bild.url;
+            this.bildliste.appendChild(img)
+            img.addEventListener("click", () => this.bildauswahl(bild))
+        }
+        this.load_passpunkte()
+
+
+        /*
+for (let file of this.fileSelect.files) {
+    if (!file) return;
+    this.files.push(file)
+
+    let img = document.createElement('img')
+    img.src = URL.createObjectURL(file)
+    img.style.width = "90%"
+    img.style.display = "block"
+    let imgNr = this.files.length - 1
+    document.getElementById("nav")?.appendChild(img)
+    img.addEventListener("click", async () => {
+        let daten = await this.createSource(img.src)
+        layer.setSource(daten.layer);
+        map.setView(daten.view)
+        activeImage = imgNr
+    })
+}*/
+    }
+
+    private async bildauswahl(bild: Bild) {
+        let daten = await this.createSource(bild.url)
+        this.layer.setSource(daten.layer);
+        this.map.setView(daten.view)
+        this.activeImage = bild
+
+        let passpunkte: PasspunktPosition[] = await fetch("/api/" + this.gui.projekt + "/image/" + bild.bid + "/passpunkte").then((res) => res.json())
+        this.punktLayerSource.clear()
+        let width = 4000;
+        let height = 3000;
+        for (let passpunkt of passpunkte) {
+            let x = passpunkt.x * width
+            let y = height - passpunkt.y * width
+            let f = new Feature<Point>({
+                geometry: new Point([x, y])
+            })
+            f.setProperties(passpunkt)
+            this.punktLayerSource.addFeature(f)
+        }
     }
 
 
@@ -127,23 +208,44 @@ export default class PasspunktTool extends Tool {
         }
     }
 
-    private refreshListe() {
+    private async refreshListe() {
         let liste = document.getElementById("passpunktListe");
         if (!liste) return
         liste.innerHTML = "";
-        for (let eintrag of this.passpunkte) {
-            if (eintrag.passpunkt != parseInt(this.selectPasspunkt.value)) continue
+        let pid = this.selectPasspunkt.value
+        let passpunkte: PasspunktPosition[] = await fetch("/api/" + this.gui.projekt + "/passpunkte/" + pid + "/position").then((res) => res.json())
+        for (let eintrag of passpunkte) {
             let c = document.createElement("canvas");
             let ctx = c.getContext("2d");
             if (!ctx) continue
             let image = new Image();
-            image.src = URL.createObjectURL(this.files[eintrag.image]);
+            image.src = "/api/" + this.gui.projekt + "/images/" + eintrag.image + "/file"
             image.onload = function () {
                 if (!ctx) return
-                ctx.drawImage(image, eintrag.x - 50, image.height - eintrag.y - 50, 100, 100, 0, 0, 100, 100);
+                let x = eintrag.x * image.width
+                let y = eintrag.y * image.width
+                ctx.drawImage(image, x - 50, y - 50, 100, 100, 0, 0, 100, 100);
             }
+            c.addEventListener("click", () => {
+                for (let b of this.bilder) {
+                    if (eintrag.image == b.bid) {
+                        this.bildauswahl(b)
+                    }
+                }
+
+            })
             liste?.appendChild(c)
         }
     }
 
+    private async load_passpunkte() {
+        let passpunkte: Passpunkt[] = await fetch("/api/" + this.gui.projekt + "/passpunkte/").then((res) => res.json())
+        this.selectPasspunkt.innerHTML = ""
+        for (let p of passpunkte) {
+            let option = document.createElement("option")
+            option.value = p.pid.toString()
+            option.innerHTML = p.name
+            this.selectPasspunkt.appendChild(option)
+        }
+    }
 }

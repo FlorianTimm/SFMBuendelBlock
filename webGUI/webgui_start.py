@@ -6,6 +6,7 @@ from os.path import exists
 from flask.json import jsonify
 from create_database import create_database
 import sqlite3
+from aruco import aruco
 
 from metadaten import load_metadata
 
@@ -49,14 +50,62 @@ def get_images(projekt):
         f.save(path + f.filename)
         db = open_database(projekt)
         load_metadata(db, path + f.filename)
-
         db.commit()
         return "TRUE"
     else:
         db = open_database(projekt)
         cursor = db.cursor()
-        cursor.execute("SELECT * FROM bilder")
-        return jsonify(cursor.fetchall())
+        cursor.execute("SELECT bid, kamera FROM bilder")
+        data = [{'bid': b[0], 'kamera': b[1], 'url':f"/api/{projekt}/images/{b[0]}/file"}
+                for b in cursor.fetchall()]
+        return jsonify(data)
+
+
+@app.route('/api/<projekt>/passpunkte/', methods=["GET", "POST"])
+def get_passpunkte(projekt):
+    if request.method == 'POST':
+        db = open_database(projekt)
+        data = request.json()
+        print(data)
+        #TODO: speichern
+        db.commit()
+        return "TRUE"
+    else:
+        db = open_database(projekt)
+        cursor = db.cursor()
+        cursor.execute("SELECT pid, name, type FROM passpunkte")
+        data = [{'pid': b[0], 'name': b[1], 'type': b[2]}
+                for b in cursor.fetchall()]
+        return jsonify(data)
+
+
+@app.route('/api/<projekt>/passpunkte/<passpunkt>/position', methods=["GET", "POST"])
+def get_passpunkt_bilder(projekt, passpunkt):
+    db = open_database(projekt)
+    if request.method == 'POST':
+        data = request.json()
+        print(data)
+        #TODO: speichern
+        db.commit()
+        return "TRUE"
+    else:
+        cursor = db.cursor()
+        cursor.execute(
+            "SELECT name, p.pid, bid, pp.x, pp.y FROM passpunktpos pp left join passpunkte p on p.pid = pp.pid WHERE p.pid = ?", (passpunkt,))
+        data = [{'passpunkt': b[1], 'name': b[0], 'image': b[2], 'x': b[3], 'y': b[4]}
+                for b in cursor.fetchall()]
+        return jsonify(data)
+
+
+@app.route('/api/<projekt>/image/<image>/passpunkte', methods=["GET"])
+def get_bilder_passpunkte(projekt, image):
+    db = open_database(projekt)
+    cursor = db.cursor()
+    cursor.execute(
+        "SELECT name, p.pid, bid, pp.x, pp.y FROM passpunktpos pp left join passpunkte p on p.pid = pp.pid WHERE bid = ?", (image,))
+    data = [{'passpunkt': b[1], 'name': b[0], 'image': b[2], 'x': b[3], 'y': b[4]}
+            for b in cursor.fetchall()]
+    return jsonify(data)
 
 
 @app.route('/api/<projekt>/images/<nr>/file')
@@ -67,6 +116,14 @@ def show_images(projekt, nr):
     pfad = cursor.fetchone()[0]
     print(pfad)
     return send_file('.' + pfad)
+
+
+@app.route('/api/<projekt>/find_aruco')
+def find_aruco(projekt):
+    db = open_database(projekt)
+    ar = aruco(db)
+    ar.find_all_aruco()
+    return 'TRUE'
 
 
 database_connections = {}

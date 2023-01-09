@@ -19,10 +19,10 @@
         </div>
     </header>
     <div id="passpunkte" class="tool">
-        <nav id="nav">
+        <nav id="passpunktBildListe">
         </nav>
         <aside>
-            <select id="passpunkt">
+            <select id="passpunktSelect">
                 <option value="-1">Neu...</option>
             </select>
             <div id="passpunktListe"></div>
@@ -30,7 +30,10 @@
         <div id="map" class="map"></div>
     </div>
     <div id="bilder" class="tool">
-        <input type='file' id="OpenPicture" multiple />
+        <div>
+            <input type='file' id="OpenPicture" multiple /><br />
+            <button id="searchAruco">Aruco-Marker in allen Bildern suchen</button>
+        </div>
         <table id="bilderliste">
 
         </table>

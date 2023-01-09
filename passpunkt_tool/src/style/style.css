@@ -27,7 +27,7 @@ div.tool {
     display: grid;
     grid-template-columns: 10em 1fr 10em;
     grid-template-areas:
-        "nav map side";
+        "passpunktBildListe map side";
 }
 
 
@@ -41,9 +41,17 @@ header {
     grid-area: head;
 }
 
-nav {
-    grid-area: nav;
+#passpunktBildListe {
+    grid-area: passpunktBildListe;
     color: #000;
+}
+
+#passpunktBildListe img {
+    width: 99%;
+}
+
+#bilder img {
+    height: 100px;
 }
 
 aside {
