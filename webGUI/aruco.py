@@ -78,10 +78,12 @@ class aruco:
         self.db.commit()
         cur.close()
 
+
+"""
     def __del__(self):
         self.db.commit()
         # self.db.close()
-
+"""
 
 if __name__ == "__main__":
     print('Testdaten')

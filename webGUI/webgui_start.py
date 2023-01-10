@@ -51,6 +51,7 @@ def get_images(projekt):
         db = open_database(projekt)
         load_metadata(db, path + f.filename)
         db.commit()
+        db.close()
         return "TRUE"
     else:
         db = open_database(projekt)
@@ -58,6 +59,7 @@ def get_images(projekt):
         cursor.execute("SELECT bid, kamera FROM bilder")
         data = [{'bid': b[0], 'kamera': b[1], 'url':f"/api/{projekt}/images/{b[0]}/file"}
                 for b in cursor.fetchall()]
+        db.close()
         return jsonify(data)
 
 
@@ -69,6 +71,7 @@ def get_passpunkte(projekt):
         print(data)
         #TODO: speichern
         db.commit()
+        db.close()
         return "TRUE"
     else:
         db = open_database(projekt)
@@ -76,6 +79,7 @@ def get_passpunkte(projekt):
         cursor.execute("SELECT pid, name, type FROM passpunkte")
         data = [{'pid': b[0], 'name': b[1], 'type': b[2]}
                 for b in cursor.fetchall()]
+        db.close()
         return jsonify(data)
 
 
@@ -87,6 +91,7 @@ def get_passpunkt_bilder(projekt, passpunkt):
         print(data)
         #TODO: speichern
         db.commit()
+        db.close()
         return "TRUE"
     else:
         cursor = db.cursor()
@@ -94,6 +99,7 @@ def get_passpunkt_bilder(projekt, passpunkt):
             "SELECT name, p.pid, bid, pp.x, pp.y FROM passpunktpos pp left join passpunkte p on p.pid = pp.pid WHERE p.pid = ?", (passpunkt,))
         data = [{'passpunkt': b[1], 'name': b[0], 'image': b[2], 'x': b[3], 'y': b[4]}
                 for b in cursor.fetchall()]
+        db.close()
         return jsonify(data)
 
 
@@ -105,6 +111,7 @@ def get_bilder_passpunkte(projekt, image):
         "SELECT name, p.pid, bid, pp.x, pp.y FROM passpunktpos pp left join passpunkte p on p.pid = pp.pid WHERE bid = ?", (image,))
     data = [{'passpunkt': b[1], 'name': b[0], 'image': b[2], 'x': b[3], 'y': b[4]}
             for b in cursor.fetchall()]
+    db.close()
     return jsonify(data)
 
 
@@ -115,6 +122,7 @@ def show_images(projekt, nr):
     cursor.execute("SELECT pfad FROM bilder where bid = ?", (nr,))
     pfad = cursor.fetchone()[0]
     print(pfad)
+    db.close()
     return send_file('.' + pfad)
 
 
@@ -123,19 +131,13 @@ def find_aruco(projekt):
     db = open_database(projekt)
     ar = aruco(db)
     ar.find_all_aruco()
+    db.close()
     return 'TRUE'
 
 
-database_connections = {}
-
-
 def open_database(projekt):
-    if not projekt in database_connections:
-        path = PROJEKTPATH + projekt + '/datenbank.db'
-        database_connections[projekt] = sqlite3.connect(path)
-        #database_connections[projekt].row_factory = sqlite3.Row
-        create_database(database_connections[projekt])
-    return database_connections[projekt]
+    path = PROJEKTPATH + projekt + '/datenbank.db'
+    return sqlite3.connect(path)
 
 
 def open_browser():
@@ -144,4 +146,4 @@ def open_browser():
 
 if __name__ == "__main__":
     #Timer(1, open_browser).start()
-    app.run(port=2000, threaded=False)
+    app.run(port=2000)  # , threaded=False)
