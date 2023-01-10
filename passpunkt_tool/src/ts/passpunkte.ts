@@ -18,7 +18,14 @@ import {
     Stroke,
     Style,
     Text,
-} from 'ol/style.js';
+} from 'ol/style';
+import {
+    Select as SelectInteraction,
+    Modify as ModifyInteraction,
+    defaults as defaultInteraction
+} from 'ol/interaction';
+import { SelectEvent } from 'ol/interaction/Select';
+import { ModifyEvent } from 'ol/interaction/Modify';
 
 
 
@@ -40,7 +47,6 @@ export default class PasspunktTool extends Tool {
         let punktLayer = new VectorLayer<VectorSource>({
             source: this.punktLayerSource,
             style: (feat) => {
-                console.log(feat.getProperties())
                 return new Style({
                     text: new Text({
                         text: feat.get('name').toString(),
@@ -61,11 +67,22 @@ export default class PasspunktTool extends Tool {
                 })
             }
         })
+        let selectInteraction = new SelectInteraction({
+            layers: [punktLayer]
+        })
+        selectInteraction.on("select", this.passpunktAufBildAusgewaehlt.bind(this))
+
+        let modifyInteraction = new ModifyInteraction({
+            features: selectInteraction.getFeatures(),
+        })
+        modifyInteraction.on("modifyend", this.passpunktAufBildVerschoben.bind(this))
+
         this.map = new Map({
             layers: [
                 this.layer,
                 punktLayer
             ],
+            interactions: defaultInteraction().extend([selectInteraction, modifyInteraction]),
             target: 'map',
 
         });
@@ -73,8 +90,19 @@ export default class PasspunktTool extends Tool {
         this.bildliste = <HTMLDivElement>document.getElementById("passpunktBildListe")
 
         this.selectPasspunkt = <HTMLSelectElement>document.getElementById("passpunktSelect")
-        this.map.on("click", this.passpunktClick.bind(this))
         this.selectPasspunkt.addEventListener("change", this.refreshListe.bind(this))
+    }
+
+    private passpunktAufBildAusgewaehlt(e: SelectEvent) {
+        console.log(e)
+        if (e.selected.length > 0) {
+            this.selectPasspunkt.value = e.selected[0].get("passpunkt")
+            this.selectPasspunkt.dispatchEvent(new Event("change"))
+        }
+    }
+
+    private passpunktAufBildVerschoben(e: ModifyEvent) {
+        console.log(e)
     }
 
     private passpunktClick(e: MapBrowserEvent<any>) {
@@ -225,6 +253,14 @@ for (let file of this.fileSelect.files) {
                 let x = eintrag.x * image.width
                 let y = eintrag.y * image.width
                 ctx.drawImage(image, x - 50, y - 50, 100, 100, 0, 0, 100, 100);
+                ctx.beginPath();
+                ctx.moveTo(40, 50);
+                ctx.lineTo(60, 50);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(50, 40);
+                ctx.lineTo(50, 60);
+                ctx.stroke();
             }
             c.addEventListener("click", () => {
                 for (let b of this.bilder) {

@@ -35,6 +35,8 @@ def get_project():
 def create_project(projekt):
     try:
         mkdir(PROJEKTPATH + '/' + projekt)
+        db = open_database(projekt)
+        create_database(db)
         return 'TRUE'
     except:
         return 'FALSE'

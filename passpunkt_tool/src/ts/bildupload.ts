@@ -52,6 +52,7 @@ export default class BildUpload extends Tool {
             )
         }
         await Promise.all(uploads)
+        alert("Fertig")
 
         this.fileSelect.files = null
 

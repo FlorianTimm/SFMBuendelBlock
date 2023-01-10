@@ -41,7 +41,14 @@ export default class GUI {
         document.getElementById("buttonPasspunkte")?.addEventListener("click", () => this.show("passpunkte", passpunkt_tool))
         document.getElementById("button3D")?.addEventListener("click", () => this.show("dreid"))
 
+        document.getElementById("neuesProjekt")?.addEventListener("click", this.neuesProjekt.bind(this))
+
         //this.show("bilder", bild_upload)
+    }
+
+    private neuesProjekt() {
+        let name = prompt("Projektname")
+        fetch("/api/" + name, { method: 'PUT' })
     }
 
     private show(id: string, tool?: Tool) {
