@@ -148,7 +148,7 @@ export default class PasspunktTool extends Tool {
             }
         }
 
-        this.load_passpunkte()
+        this.loadPasspunkte()
 
 
         /*
@@ -176,8 +176,11 @@ for (let file of this.fileSelect.files) {
         this.layer.setSource(daten.layer);
         this.map.setView(daten.view)
         this.activeImage = bild
+        this.loadPasspunktPosAufBild(bild.bid)
+    }
 
-        let passpunkte: PasspunktPosition[] = await fetch("/api/" + this.gui.projekt + "/image/" + bild.bid + "/passpunkte").then((res) => res.json())
+    private async loadPasspunktPosAufBild(bildId: number) {
+        let passpunkte: PasspunktPosition[] = await fetch("/api/" + this.gui.projekt + "/image/" + bildId + "/passpunkte").then((res) => res.json())
         this.punktLayerSource.clear()
         let width = 4000;
         let height = 3000;
@@ -242,6 +245,7 @@ for (let file of this.fileSelect.files) {
     }
 
     private async refreshListe() {
+
         let liste = document.getElementById("passpunktListe");
         if (!liste) return
         liste.innerHTML = "";
@@ -275,11 +279,23 @@ for (let file of this.fileSelect.files) {
                 }
 
             })
+            c.oncontextmenu = (e) => {
+                e.preventDefault()
+                this.deletePasspunktPosition(eintrag)
+            }
             liste?.appendChild(c)
         }
     }
 
-    private async load_passpunkte() {
+    private async deletePasspunktPosition(passpunkt: PasspunktPosition) {
+        await fetch("/api/" + this.gui.projekt + "/passpunkte/" + passpunkt.passpunkt + "/" + passpunkt.image, {
+            method: "DELETE"
+        })
+        this.refreshListe()
+        this.loadPasspunktPosAufBild(passpunkt.image)
+    }
+
+    private async loadPasspunkte() {
         let passpunkte: Passpunkt[] = await fetch("/api/" + this.gui.projekt + "/passpunkte/").then((res) => res.json())
         this.selectPasspunkt.innerHTML = ""
         for (let p of passpunkte) {

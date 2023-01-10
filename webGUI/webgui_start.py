@@ -85,6 +85,21 @@ def get_passpunkte(projekt):
         return jsonify(data)
 
 
+@app.route('/api/<projekt>/passpunkte/<passpunkt>/<image>', methods=["DELETE"])
+def delete_modify_passpunkte(projekt, passpunkt, image):
+    db = open_database(projekt)
+    if request.method == 'DELETE':
+        db = open_database(projekt)
+        db.execute(
+            "DELETE FROM passpunktpos WHERE bid = ? and pid = ?", (image, passpunkt))
+        db.commit()
+        db.close()
+        return "TRUE"
+    else:
+        db.close()
+        return jsonify(data)
+
+
 @app.route('/api/<projekt>/passpunkte/<passpunkt>/position', methods=["GET", "POST"])
 def get_passpunkt_bilder(projekt, passpunkt):
     db = open_database(projekt)
