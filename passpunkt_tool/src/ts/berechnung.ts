@@ -9,6 +9,10 @@ export default class Berechnung extends Tool {
         super(gui)
         document.getElementById("buttonFindSift")?.addEventListener("click", this.findSift.bind(this))
         document.getElementById("buttonMatchSift")?.addEventListener("click", this.matchSift.bind(this))
+        document.getElementById("buttonStartPair")?.addEventListener("click", this.startPair.bind(this))
+        document.getElementById("buttonNextImage")?.addEventListener("click", this.nextImage.bind(this))
+        document.getElementById("buttonNextCoordinates")?.addEventListener("click", this.nextCoordinates.bind(this))
+        document.getElementById("buttonBundleBlock")?.addEventListener("click", this.bundleBlock.bind(this))
     }
 
     private async findSift() {
@@ -18,6 +22,26 @@ export default class Berechnung extends Tool {
 
     private async matchSift() {
         await fetch("/api/" + this.gui.projekt + "/match_sift")
+        alert("Fertig!")
+    }
+
+    private async startPair() {
+        await fetch("/api/" + this.gui.projekt + "/start_pair")
+        alert("Fertig!")
+    }
+
+    private async nextImage() {
+        await fetch("/api/" + this.gui.projekt + "/next_image")
+        alert("Fertig!")
+    }
+
+    private async nextCoordinates() {
+        await fetch("/api/" + this.gui.projekt + "/next_coordinates")
+        alert("Fertig!")
+    }
+
+    private async bundleBlock() {
+        await fetch("/api/" + this.gui.projekt + "/bundle_block")
         alert("Fertig!")
     }
 }

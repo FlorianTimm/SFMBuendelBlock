@@ -17,7 +17,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 """
 
 
-def naeherungswerte(datenbank):
+def naeherungswerte(datenbank, show_figures=False):
     db = sqlite3.connect(datenbank)
     cur = db.cursor()
 
@@ -124,21 +124,22 @@ def naeherungswerte(datenbank):
     tripoints3d = reconstruct_points(points1n, points2n, P1, P2)
     # tripoints3d = structure.linear_triangulation(points1n, points2n, P1, P2)
 
-    fig = plt.figure()
-    fig.suptitle('3D reconstructed', fontsize=16)
-    ax = fig.add_subplot(projection='3d')
-    ax.plot(tripoints3d[0], tripoints3d[1], tripoints3d[2], 'r.')
-    ax.plot([0], [0], [0], 'g.')
-    ax.plot(-P2[0, 3], -P2[1, 3], -P2[2, 3], 'g.')
-    ax.set_xlabel('x axis')
-    ax.set_ylabel('y axis')
-    ax.set_zlabel('z axis')
-    ax.view_init(elev=135, azim=90)
-    plt.axis('square')
-    ax.set_ylim([-2, 3])
-    ax.set_xlim([-2, 3])
-    ax.set_zlim([-2, 3])
-    plt.show()
+    if (show_figures):
+        fig = plt.figure()
+        fig.suptitle('3D reconstructed', fontsize=16)
+        ax = fig.add_subplot(projection='3d')
+        ax.plot(tripoints3d[0], tripoints3d[1], tripoints3d[2], 'r.')
+        ax.plot([0], [0], [0], 'g.')
+        ax.plot(-P2[0, 3], -P2[1, 3], -P2[2, 3], 'g.')
+        ax.set_xlabel('x axis')
+        ax.set_ylabel('y axis')
+        ax.set_zlabel('z axis')
+        ax.view_init(elev=135, azim=90)
+        plt.axis('square')
+        ax.set_ylim([-2, 3])
+        ax.set_xlim([-2, 3])
+        ax.set_zlim([-2, 3])
+        plt.show()
 
     daten = zip(tripoints3d[0], tripoints3d[1], tripoints3d[2], np.int32(pids))
     daten = [[d[0], d[1], d[2], int(d[3])] for d in daten]

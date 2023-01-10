@@ -11,7 +11,10 @@ from metadaten import load_metadata
 from aruco import aruco
 from find_sift import find_sift
 from match_sift import match_sift
-
+from naeherungswerte import naeherungswerte
+from join_nextcoords import join_nextcoords
+from join_nextpictures import join_nextpictures
+from bundle_adjustment import bundle_adjustment
 
 app = Flask(__name__)
 
@@ -157,20 +160,48 @@ def find_aruco(projekt):
 
 @app.route('/api/<projekt>/find_sift')
 def find_sift_all(projekt):
-    sift = find_sift(PROJEKTPATH + projekt + '/datenbank.db')
+    sift = find_sift(database_path(projekt))
     sift.find_sift_in_all()
     return 'TRUE'
 
 
 @app.route('/api/<projekt>/match_sift')
 def match_sift_all(projekt):
-    sift = match_sift(PROJEKTPATH + projekt + '/datenbank.db')
+    sift = match_sift(database_path(projekt))
     sift.match_sift()
     return 'TRUE'
 
 
+@app.route('/api/<projekt>/next_image')
+def web_join_nextpictures(projekt):
+    join_nextpictures(database_path(projekt))
+    return 'TRUE'
+
+
+@app.route('/api/<projekt>/next_coordinates')
+def web_join_nextcoords(projekt):
+    join_nextcoords(database_path(projekt))
+    return 'TRUE'
+
+
+@app.route('/api/<projekt>/start_pair')
+def start_pair(projekt):
+    naeherungswerte(database_path(projekt))
+    return 'TRUE'
+
+
+@app.route('/api/<projekt>/bundle_block')
+def bundle_block(projekt):
+    bundle_adjustment(database_path(projekt))
+    return 'TRUE'
+
+
+def database_path(projekt):
+    return PROJEKTPATH + projekt + '/datenbank.db'
+
+
 def open_database(projekt):
-    path = PROJEKTPATH + projekt + '/datenbank.db'
+    path = database_path(projekt)
     return sqlite3.connect(path)
 
 
