@@ -40,6 +40,7 @@ export default class GUI {
         document.getElementById("buttonBilder")?.addEventListener("click", () => this.show("bilder", bild_upload))
         document.getElementById("buttonPasspunkte")?.addEventListener("click", () => this.show("passpunkte", passpunkt_tool))
         document.getElementById("button3D")?.addEventListener("click", () => this.show("dreid"))
+        document.getElementById("buttonBerechnung")?.addEventListener("click", () => this.show("berechnung"))
 
         document.getElementById("neuesProjekt")?.addEventListener("click", this.neuesProjekt.bind(this))
 
