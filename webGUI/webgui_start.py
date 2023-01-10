@@ -64,8 +64,13 @@ def get_images(projekt):
     else:
         db = open_database(projekt)
         cursor = db.cursor()
-        cursor.execute("SELECT bid, kamera FROM bilder")
-        data = [{'bid': b[0], 'kamera': b[1], 'url':f"/api/{projekt}/images/{b[0]}/file"}
+        cursor.execute(
+            "SELECT bid, kamera, lx, ly, lz, lrx, lry, lrz FROM bilder")
+        data = [{'bid': b[0],
+                 'kamera': b[1],
+                 'url':f"/api/{projekt}/images/{b[0]}/file",
+                 'x':b[2], 'y':b[3], 'z': b[4],
+                 'rx':b[5], 'ry':b[6], 'rz': b[7]}
                 for b in cursor.fetchall()]
         db.close()
         return jsonify(data)
@@ -84,8 +89,8 @@ def get_passpunkte(projekt):
     else:
         db = open_database(projekt)
         cursor = db.cursor()
-        cursor.execute("SELECT pid, name, type FROM passpunkte")
-        data = [{'pid': b[0], 'name': b[1], 'type': b[2]}
+        cursor.execute("SELECT pid, name, type, lx, ly, lz FROM passpunkte")
+        data = [{'pid': b[0], 'name': b[1], 'type': b[2], 'x':b[3], 'y':b[4], 'z': b[5]}
                 for b in cursor.fetchall()]
         db.close()
         return jsonify(data)

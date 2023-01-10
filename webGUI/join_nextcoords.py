@@ -5,7 +5,7 @@ from naeherungswerte import reconstruct_one_point
 import matplotlib.pyplot as plt
 
 
-def join_nextcoords(datenbank):
+def join_nextcoords(datenbank, show_figures=False):
     db = sqlite3.connect(datenbank)
     cur = db.cursor()
 
@@ -50,21 +50,24 @@ def join_nextcoords(datenbank):
         pneu.append([pn[0], pn[1], pn[2], pid])
 
     tripoints3d = np.array(pneu).T
-    fig = plt.figure()
-    fig.suptitle('3D reconstructed', fontsize=16)
-    ax = fig.add_subplot(projection='3d')
-    ax.plot(tripoints3d[0], tripoints3d[1], tripoints3d[2], 'r.')
-    ax.plot([0], [0], [0], 'g.')
-    ax.plot(-P2[0, 3], -P2[1, 3], -P2[2, 3], 'g.')
-    ax.set_xlabel('x axis')
-    ax.set_ylabel('y axis')
-    ax.set_zlabel('z axis')
-    ax.view_init(elev=135, azim=90)
-    plt.axis('square')
-    ax.set_ylim([-2, 3])
-    ax.set_xlim([-2, 3])
-    ax.set_zlim([-2, 3])
-    plt.show()
+
+    if (show_figures):
+        fig = plt.figure()
+        fig.suptitle('3D reconstructed', fontsize=16)
+        ax = fig.add_subplot(projection='3d')
+        ax.plot(tripoints3d[0], tripoints3d[1], tripoints3d[2], 'r.')
+        ax.plot([0], [0], [0], 'g.')
+        ax.plot(-P2[0, 3], -P2[1, 3], -P2[2, 3], 'g.')
+        ax.set_xlabel('x axis')
+        ax.set_ylabel('y axis')
+        ax.set_zlabel('z axis')
+        ax.view_init(elev=135, azim=90)
+        plt.axis('square')
+        ax.set_ylim([-2, 3])
+        ax.set_xlim([-2, 3])
+        ax.set_zlim([-2, 3])
+        plt.show()
+
     cur.executemany(
         """UPDATE passpunkte SET lx = ?, ly = ?, lz = ? WHERE pid = ?""", pneu)
 

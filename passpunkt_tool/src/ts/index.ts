@@ -2,6 +2,7 @@ import '../../node_modules/ol/ol.css'
 import '../style/style.css';
 import Berechnung from './berechnung';
 import BildUpload from './bildupload';
+import DreiD from './dreid';
 import PasspunktTool from './passpunkte';
 import Tool from './tool';
 
@@ -36,12 +37,12 @@ export default class GUI {
         let passpunkt_tool = new PasspunktTool(this)
         let bild_upload = new BildUpload(this)
         let berechnung = new Berechnung(this)
-
+        let dreid = new DreiD(this)
 
 
         document.getElementById("buttonBilder")?.addEventListener("click", () => this.show("bilder", bild_upload))
         document.getElementById("buttonPasspunkte")?.addEventListener("click", () => this.show("passpunkte", passpunkt_tool))
-        document.getElementById("button3D")?.addEventListener("click", () => this.show("dreid"))
+        document.getElementById("button3D")?.addEventListener("click", () => this.show("dreid", dreid))
         document.getElementById("buttonBerechnung")?.addEventListener("click", () => this.show("berechnung", berechnung))
 
         document.getElementById("neuesProjekt")?.addEventListener("click", this.neuesProjekt.bind(this))
@@ -54,7 +55,7 @@ export default class GUI {
         fetch("/api/" + name, { method: 'PUT' })
     }
 
-    private show(id: string, tool?: Tool) {
+    private show(id: string, tool: Tool) {
         for (let t of document.getElementsByClassName("tool")) {
             let ele = <HTMLElement>t
             ele.style.display = "none"
@@ -63,7 +64,7 @@ export default class GUI {
             if (t !== tool)
                 t.stop()
         }
-        if (tool) tool.start()
+        tool.start()
         let s = document.getElementById(id)
         if (s) s.style.display = "inherit"
     }

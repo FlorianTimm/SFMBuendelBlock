@@ -13,10 +13,13 @@
   "license": "MIT",
   "dependencies": {
     "file-saver": "^2.0.5",
-    "ol": "^7.2.2"
+    "ol": "^7.2.2",
+    "three": "^0.148.0",
+    "three-orbitcontrols-ts": "^0.1.2"
   },
   "devDependencies": {
     "@types/file-saver": "^2.0.5",
+    "@types/three": "^0.148.0",
     "css-loader": "^6.7.3",
     "html-webpack-plugin": "^5.5.0",
     "mini-css-extract-plugin": "^2.7.2",
