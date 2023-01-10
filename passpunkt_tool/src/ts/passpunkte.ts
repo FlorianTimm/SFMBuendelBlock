@@ -136,13 +136,18 @@ export default class PasspunktTool extends Tool {
     async start() {
         this.bilder = await fetch("/api/" + this.gui.projekt + "/images/").then((res) => res.json())
         this.bildliste.innerHTML = "";
-
+        let firstImage = true
         for (let bild of this.bilder) {
             let img = document.createElement("img")
             img.src = bild.url;
             this.bildliste.appendChild(img)
             img.addEventListener("click", () => this.bildauswahl(bild))
+            if (firstImage) {
+                firstImage = false;
+                this.bildauswahl(bild)
+            }
         }
+
         this.load_passpunkte()
 
 
@@ -283,5 +288,6 @@ for (let file of this.fileSelect.files) {
             option.innerHTML = p.name
             this.selectPasspunkt.appendChild(option)
         }
+        this.selectPasspunkt.dispatchEvent(new Event("change"))
     }
 }

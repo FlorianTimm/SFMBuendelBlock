@@ -34,7 +34,7 @@ div.tool {
 
 #map {
     grid-area: map;
-    background-color: aqua;
+    background-color: #555;
 }
 
 header {
