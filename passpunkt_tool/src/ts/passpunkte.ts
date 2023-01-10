@@ -98,12 +98,15 @@ export default class PasspunktTool extends Tool {
         if (e.selected.length > 0) {
             this.selectPasspunkt.value = e.selected[0].get("passpunkt")
             this.selectPasspunkt.dispatchEvent(new Event("change"))
+        } else {
+            this.passpunktClick(e.mapBrowserEvent)
         }
     }
 
     private passpunktAufBildVerschoben(e: ModifyEvent) {
         console.log(e)
     }
+
 
     private passpunktClick(e: MapBrowserEvent<any>) {
         if (!this.activeImage) return;
@@ -128,6 +131,7 @@ export default class PasspunktTool extends Tool {
         })
         this.refreshListe()
     }
+
 
     stop() {
 

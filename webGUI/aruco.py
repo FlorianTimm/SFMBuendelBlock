@@ -2,30 +2,10 @@ import sqlite3
 import cv2
 from cv2 import aruco as cv2_aruco
 import numpy as np
+from create_database import create_database
 
 
 class aruco:
-    def create_tables(db):
-        db.execute("""CREATE TABLE IF NOT EXISTS passpunkte (
-                pid INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT UNIQUE,
-                type TEXT,
-                x NUMBER,
-                y NUMBER,
-                z NUMBER,
-                lx NUMBER,
-                ly NUMBER,
-                lz NUMBER
-                )""")
-        db.execute("""CREATE TABLE IF NOT EXISTS passpunktpos (
-                ppid INTEGER PRIMARY KEY AUTOINCREMENT,
-                pid INTEGER REFERENCES passpunkte(pid),
-                bid INTEGER REFERENCES bilder(bid),
-                x NUMBER,
-                y NUMBER,
-                UNIQUE (pid, bid))""")
-        db.commit()
-
     def create_from_db_path(datenbank):
         return aruco(sqlite3.connect(datenbank))
 
@@ -42,7 +22,7 @@ class aruco:
         self.parameter = cv2_aruco.DetectorParameters.create()
         self.parameter.cornerRefinementMethod = cv2_aruco.CORNER_REFINE_SUBPIX
 
-        aruco.create_tables(self.db)
+        create_database(self.db)
 
     def find_markers(self, id, pfad):
         cv_img = cv2.imread(pfad)

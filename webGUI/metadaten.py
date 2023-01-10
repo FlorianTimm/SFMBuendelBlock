@@ -7,47 +7,16 @@ from xml.etree import ElementTree as ET
 import numpy as np
 import math
 from random import choices
-
-
-def create_tables(db):
-    db.execute("""CREATE TABLE IF NOT EXISTS bilder (
-            bid INTEGER PRIMARY KEY AUTOINCREMENT,
-            pfad TEXT UNIQUE,
-            kamera INTEGER REFERENCES kameras(kid),
-            x NUMBER,
-            y NUMBER,
-            z NUMBER,
-            rx NUMBER,
-            ry NUMBER,
-            rz NUMBER,
-            lx NUMBER,
-            ly NUMBER,
-            lz NUMBER,
-            lrx NUMBER,
-            lry NUMBER,
-            lrz NUMBER
-            )""")
-
-    db.execute("""CREATE TABLE IF NOT EXISTS kameras (
-            kid INTEGER PRIMARY KEY AUTOINCREMENT,
-            model TEXT,
-            fx NUMBER,
-            fy NUMBER,
-            x0 NUMBER,
-            y0 NUMBER,
-            pixelx INTEGER,
-            pixely INTEGER,
-            UNIQUE (model, fx))""")
+from create_database import create_database
 
 
 def metadaten(datenbank, glob_pfad, maxnumber: int = 0):
     print("Metadaten")
     db = sqlite3.connect(datenbank)
+    create_database(db)
     bilder = glob(glob_pfad)
     if not maxnumber == 0:
         bilder = choices(bilder, k=maxnumber)
-
-    create_tables(db)
 
     for bild in bilder:
         # print("Bild")

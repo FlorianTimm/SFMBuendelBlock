@@ -6,9 +6,12 @@ from os.path import exists
 from flask.json import jsonify
 from create_database import create_database
 import sqlite3
-from aruco import aruco
 
 from metadaten import load_metadata
+from aruco import aruco
+from find_sift import find_sift
+from match_sift import match_sift
+
 
 app = Flask(__name__)
 
@@ -149,6 +152,20 @@ def find_aruco(projekt):
     ar = aruco(db)
     ar.find_all_aruco()
     db.close()
+    return 'TRUE'
+
+
+@app.route('/api/<projekt>/find_sift')
+def find_sift_all(projekt):
+    sift = find_sift(PROJEKTPATH + projekt + '/datenbank.db')
+    sift.find_sift_in_all()
+    return 'TRUE'
+
+
+@app.route('/api/<projekt>/match_sift')
+def match_sift_all(projekt):
+    sift = match_sift(PROJEKTPATH + projekt + '/datenbank.db')
+    sift.match_sift()
     return 'TRUE'
 
 
