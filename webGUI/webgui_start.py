@@ -65,12 +65,13 @@ def get_images(projekt):
         db = open_database(projekt)
         cursor = db.cursor()
         cursor.execute(
-            "SELECT bid, kamera, lx, ly, lz, lrx, lry, lrz FROM bilder")
+            "SELECT bid, kamera, lx, ly, lz, lrx, lry, lrz, pixelx, pixely FROM bilder b left join kameras k on k.kid = b.kamera")
         data = [{'bid': b[0],
                  'kamera': b[1],
                  'url':f"/api/{projekt}/images/{b[0]}/file",
                  'x':b[2], 'y':b[3], 'z': b[4],
-                 'rx':b[5], 'ry':b[6], 'rz': b[7]}
+                 'rx':b[5], 'ry':b[6], 'rz': b[7],
+                 'width':b[8], 'height':b[9]}
                 for b in cursor.fetchall()]
         db.close()
         return jsonify(data)
@@ -96,17 +97,32 @@ def get_passpunkte(projekt):
         return jsonify(data)
 
 
-@app.route('/api/<projekt>/passpunkte/<passpunkt>/<image>', methods=["DELETE"])
+@app.route('/api/<projekt>/passpunkte/<passpunkt>/<image>', methods=["DELETE", "PUT"])
 def delete_modify_passpunkte(projekt, passpunkt, image):
     db = open_database(projekt)
     if request.method == 'DELETE':
-        db = open_database(projekt)
         db.execute(
             "DELETE FROM passpunktpos WHERE bid = ? and pid = ?", (image, passpunkt))
         db.commit()
         db.close()
         return "TRUE"
     else:
+        daten = request.json
+        cur = db.cursor()
+        if daten['passpunkt'] == -1:
+            cur.execute(
+                "INSERT INTO passpunkte (name, type) VALUES (?,'manual') RETURNING pid", (daten['name'],))
+            daten['passpunkt'] = cur.fetchone()[0]
+        cur.execute(
+            "INSERT INTO passpunktpos (pid, bid, x, y) VALUES (?,?,?,?) RETURNING ppid", (daten['passpunkt'], daten['image'], daten['x'], daten['y']))
+        ppid = cur.fetchone()[0]
+        cur.execute(
+            "SELECT name, p.pid, bid, pp.x, pp.y FROM passpunktpos pp left join passpunkte p on p.pid = pp.pid WHERE ppid = ?", (ppid,))
+        b = cur.fetchone()
+        data = {'passpunkt': b[1], 'name': b[0],
+                'image': b[2], 'x': b[3], 'y': b[4]}
+        cur.close()
+        db.commit()
         db.close()
         return jsonify(data)
 

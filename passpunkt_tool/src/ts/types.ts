@@ -1,5 +1,7 @@
 export type Bild = {
     bid: number,
+    width: number,
+    height: number,
     kamera: number,
     url: string,
     x?: number,
@@ -11,7 +13,7 @@ export type Bild = {
 }
 
 export type PasspunktPosition = {
-    name: string,
+    name?: string,
     passpunkt: number,
     image: number,
     x: number,

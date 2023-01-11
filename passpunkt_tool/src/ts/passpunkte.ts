@@ -22,10 +22,12 @@ import {
 import {
     Select as SelectInteraction,
     Modify as ModifyInteraction,
+    Draw as DrawInteraction,
     defaults as defaultInteraction
 } from 'ol/interaction';
 import { SelectEvent } from 'ol/interaction/Select';
 import { ModifyEvent } from 'ol/interaction/Modify';
+import { DrawEvent } from 'ol/interaction/Draw';
 
 
 
@@ -39,6 +41,9 @@ export default class PasspunktTool extends Tool {
     private layer: ImageLayer<ImageSource>;
     private punktLayerSource: VectorSource;
     private passpunktNr: number = 0
+    private modus: "change" | "new" = "change";
+    private selectInteraction: SelectInteraction;
+    drawInteraction: DrawInteraction;
 
     constructor(gui: GUI) {
         super(gui)
@@ -49,7 +54,7 @@ export default class PasspunktTool extends Tool {
             style: (feat) => {
                 return new Style({
                     text: new Text({
-                        text: feat.get('name').toString(),
+                        text: feat.get('name')?.toString(),
                         font: '13px Calibri,sans-serif',
                         fill: new Fill({ color: '#000' }),
                         stroke: new Stroke({
@@ -67,25 +72,39 @@ export default class PasspunktTool extends Tool {
                 })
             }
         })
-        let selectInteraction = new SelectInteraction({
+        this.selectInteraction = new SelectInteraction({
             layers: [punktLayer]
         })
-        selectInteraction.on("select", this.passpunktAufBildAusgewaehlt.bind(this))
+        this.selectInteraction.on("select", this.passpunktAufBildAusgewaehlt.bind(this))
 
         let modifyInteraction = new ModifyInteraction({
-            features: selectInteraction.getFeatures(),
+            features: this.selectInteraction.getFeatures(),
         })
         modifyInteraction.on("modifyend", this.passpunktAufBildVerschoben.bind(this))
+
+        this.drawInteraction = new DrawInteraction({
+            type: 'Point',
+            source: this.punktLayerSource
+        })
+        this.drawInteraction.on("drawstart", this.passpunktNeu.bind(this))
 
         this.map = new Map({
             layers: [
                 this.layer,
                 punktLayer
             ],
-            interactions: defaultInteraction().extend([selectInteraction, modifyInteraction]),
+            interactions: defaultInteraction().extend([modifyInteraction]),
             target: 'map',
 
         });
+
+        document.getElementsByName("passpunktModus").forEach((e: HTMLElement) =>
+            e.addEventListener("click", () => {
+                this.modus = <"change" | "new">(document.querySelector<HTMLInputElement>('input[name="passpunktModus"]:checked')?.value) ?? "change";
+                console.log(this.modus)
+                this.modusSwitch()
+            }))
+        this.modusSwitch()
 
         this.bildliste = <HTMLDivElement>document.getElementById("passpunktBildListe")
 
@@ -98,8 +117,16 @@ export default class PasspunktTool extends Tool {
         if (e.selected.length > 0) {
             this.selectPasspunkt.value = e.selected[0].get("passpunkt")
             this.selectPasspunkt.dispatchEvent(new Event("change"))
+        }
+    }
+
+    private modusSwitch() {
+        if (this.modus == "change") {
+            this.map.addInteraction(this.selectInteraction)
+            this.map.removeInteraction(this.drawInteraction)
         } else {
-            this.passpunktClick(e.mapBrowserEvent)
+            this.map.removeInteraction(this.selectInteraction)
+            this.map.addInteraction(this.drawInteraction)
         }
     }
 
@@ -107,31 +134,47 @@ export default class PasspunktTool extends Tool {
         console.log(e)
     }
 
+    private async passpunktNeu(e: DrawEvent) {
+        console.log(e)
+        let f = <Feature<Point>>e.feature
+        let c = f.getGeometry()?.getCoordinates()
+        if (!c) return
 
-    private passpunktClick(e: MapBrowserEvent<any>) {
-        if (!this.activeImage) return;
+        let width = this.activeImage?.width ?? 4000;
+        let height = this.activeImage?.height ?? 3000;
 
-        console.log(this.punktLayerSource.getFeaturesAtCoordinate(e.coordinate))
+        let x = c[0] / width
+        let y = (height - c[1]) / width
 
-        console.log(this.activeImage, e.coordinate, this.selectPasspunkt.value)
-        if (parseInt(this.selectPasspunkt.value) == -1) {
-            let neu = document.createElement("option")
-            neu.value = (this.passpunktNr++).toString()
-            neu.innerHTML = "Passpunkt " + neu.value
-            this.selectPasspunkt.appendChild(neu)
-            this.selectPasspunkt.selectedIndex = this.passpunktNr
+        let passpunkt = parseInt(this.selectPasspunkt.value)
+        let name = undefined;
+        if (passpunkt == -1) {
+            name = prompt("Name")
+            if (!name) return
         }
 
-        this.passpunkte.push({
-            passpunkt: parseInt(this.selectPasspunkt.value),
-            name: this.selectPasspunkt.innerText,
-            image: this.activeImage.bid,
-            x: e.coordinate[0],
-            y: e.coordinate[1]
-        })
+        let image = this.activeImage?.bid
+        if (!image) return
+        let data: PasspunktPosition = {
+            name: name,
+            passpunkt: passpunkt,
+            image: image,
+            x: x,
+            y: y
+        }
+        let d: PasspunktPosition = await fetch("/api/" + this.gui.projekt + "/passpunkte/" + passpunkt + "/" + image, {
+            method: "PUT",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        }).then((r) => r.json())
+        f.setProperties(d)
+        if (passpunkt == -1) {
+            this.refreshListe()
+        }
         this.refreshListe()
     }
-
 
     stop() {
 
@@ -183,11 +226,15 @@ for (let file of this.fileSelect.files) {
         this.loadPasspunktPosAufBild(bild.bid)
     }
 
-    private async loadPasspunktPosAufBild(bildId: number) {
+    private async loadPasspunktPosAufBild(bildId?: number) {
+        if (!bildId)
+            bildId = this.activeImage?.bid
+        if (!bildId)
+            return
         let passpunkte: PasspunktPosition[] = await fetch("/api/" + this.gui.projekt + "/image/" + bildId + "/passpunkte").then((res) => res.json())
         this.punktLayerSource.clear()
-        let width = 4000;
-        let height = 3000;
+        let width = this.activeImage?.width ?? 4000;
+        let height = this.activeImage?.height ?? 3000;
         for (let passpunkt of passpunkte) {
             let x = passpunkt.x * width
             let y = height - passpunkt.y * width
@@ -301,7 +348,7 @@ for (let file of this.fileSelect.files) {
 
     private async loadPasspunkte() {
         let passpunkte: Passpunkt[] = await fetch("/api/" + this.gui.projekt + "/passpunkte/").then((res) => res.json())
-        this.selectPasspunkt.innerHTML = ""
+        this.selectPasspunkt.innerHTML = "<option value='-1'>Neu...</option>"
         for (let p of passpunkte) {
             let option = document.createElement("option")
             option.value = p.pid.toString()
@@ -309,5 +356,6 @@ for (let file of this.fileSelect.files) {
             this.selectPasspunkt.appendChild(option)
         }
         this.selectPasspunkt.dispatchEvent(new Event("change"))
+
     }
 }
