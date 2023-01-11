@@ -22,7 +22,8 @@ export type PasspunktPosition = {
 
 export type Passpunkt = {
     name: string,
-    pid: number
+    pid: number,
+    type: "manual" | "aruco" | "sift",
     x?: number,
     y?: number,
     z?: number

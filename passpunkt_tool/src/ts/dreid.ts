@@ -9,7 +9,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 export default class DreiD extends Tool {
     private scene: THREE.Scene;
-    private camera: THREE.PerspectiveCamera;
+    private camera: THREE.Camera;
     private renderer: THREE.WebGLRenderer;
     private controls: OrbitControls;
     //private running = false;
@@ -25,7 +25,7 @@ export default class DreiD extends Tool {
     constructor(gui: GUI) {
         super(gui)
         this.scene = new THREE.Scene();
-
+        //this.camera = new THREE.OrthographicCamera(undefined, undefined, undefined, undefined, 0.1, 1000);
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
         this.renderer = new THREE.WebGLRenderer();
@@ -38,7 +38,7 @@ export default class DreiD extends Tool {
         this.controls.maxDistance = Infinity;
 
         this.controls.enableZoom = true; // Set to false to disable zooming
-        this.controls.zoomSpeed = 1.0;
+        this.controls.zoomSpeed = 1.5;
 
         this.controls.enablePan = true;
 
@@ -75,7 +75,12 @@ export default class DreiD extends Tool {
     private drawPoint(punkt: Passpunkt) {
         if (!(punkt.x && punkt.y && punkt.z)) return
         const geometry = new THREE.BoxGeometry(0.05, 0.05, 0.05);
-        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        let color = 0x555555
+        if (punkt.type == "manual")
+            color = 0x00ff00
+        else if (punkt.type == "aruco")
+            color = 0x0000ff
+        const material = new THREE.MeshBasicMaterial({ color: color });
         let cube = new THREE.Mesh(geometry, material);
         cube.position.set(punkt.x, punkt.y, punkt.z)
         this.scene.add(cube);
@@ -86,7 +91,7 @@ export default class DreiD extends Tool {
         const geometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
         const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
         let cube = new THREE.Mesh(geometry, material);
-        cube.position.set(bild.x, bild.y, bild.z)
+        cube.position.set(-bild.x, -bild.y, -bild.z)
         this.scene.add(cube);
     }
 

@@ -28,7 +28,7 @@ def naeherungswerte(datenbank, show_figures=False):
 
     cur.execute("""WITH
     liste as (SELECT a.bid abid, b.bid bbid, a.pid pid, a.x ax, a.y ay, b.x bx, b.y by, type FROM passpunktpos a, passpunktpos b, passpunkte p WHERE a.pid = b.pid and a.bid > b.bid and a.pid = p.pid),
-    bester as (SELECT abid, bbid FROM liste group by abid, bbid order by sum( CASE WHEN type = 'aruco' THEN 2 WHEN type = 'SIFT' THEN 1 END) desc limit 1)
+    bester as (SELECT abid, bbid FROM liste group by abid, bbid order by sum( CASE WHEN type = 'manual' THEN 3 WHEN type = 'aruco' THEN 2 WHEN type = 'SIFT' THEN 1 END) desc limit 1)
     SELECT liste.* FROM liste, bester  where liste.abid = bester.abid and liste.bbid = bester.bbid""")
     liste = cur.fetchall()
 

@@ -4,7 +4,7 @@ import Projection from 'ol/proj/Projection';
 import Static from 'ol/source/ImageStatic';
 import View from 'ol/View';
 import { Extent, getCenter } from 'ol/extent';
-import { Feature, MapBrowserEvent } from 'ol';
+import { Feature } from 'ol';
 import Tool from './tool';
 import GUI from '.';
 import ImageSource from 'ol/source/Image';
@@ -32,7 +32,6 @@ import { DrawEvent } from 'ol/interaction/Draw';
 
 
 export default class PasspunktTool extends Tool {
-    private passpunkte: PasspunktPosition[] = []
     private selectPasspunkt: HTMLSelectElement;
     private bildliste: HTMLDivElement;
     private bilder: Bild[] = [];
@@ -40,7 +39,6 @@ export default class PasspunktTool extends Tool {
     private activeImage: Bild | undefined
     private layer: ImageLayer<ImageSource>;
     private punktLayerSource: VectorSource;
-    private passpunktNr: number = 0
     private modus: "change" | "new" = "change";
     private selectInteraction: SelectInteraction;
     drawInteraction: DrawInteraction;
