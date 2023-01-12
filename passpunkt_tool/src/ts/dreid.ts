@@ -91,7 +91,7 @@ export default class DreiD extends Tool {
         const geometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
         const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
         let cube = new THREE.Mesh(geometry, material);
-        cube.position.set(-bild.x, -bild.y, -bild.z)
+        cube.position.set(bild.x, bild.y, bild.z)
         this.scene.add(cube);
     }
 

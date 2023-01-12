@@ -7,3 +7,4 @@ passpunkt_tool/node_modules
 *.pyc
 projekte/
 Einzelschritte/__pycache__/
+example_data/bildverband5/**
