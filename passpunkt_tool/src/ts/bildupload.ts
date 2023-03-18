@@ -37,7 +37,7 @@ export default class BildUpload extends Tool {
 
     }
 
-    async fileUpload() {
+    private async fileUpload() {
         if (!this.fileSelect.files) return
 
         let uploads: Promise<Response>[] = []

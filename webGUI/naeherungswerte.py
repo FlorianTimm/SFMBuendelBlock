@@ -4,6 +4,8 @@ import numpy as np
 import sqlite3
 import matplotlib.pyplot as plt
 from random import choices
+from typing import List, Any
+from numpy.typing import NDArray
 
 # functions derived from https://github.com/alyssaq/3Dreconstruction
 """
@@ -17,7 +19,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 """
 
 
-def naeherungswerte(datenbank, show_figures=False):
+def naeherungswerte(datenbank: str, show_figures: bool = False) -> None:
     db = sqlite3.connect(datenbank)
     cur = db.cursor()
 
@@ -30,19 +32,19 @@ def naeherungswerte(datenbank, show_figures=False):
     liste as (SELECT a.bid abid, b.bid bbid, a.pid pid, a.x ax, a.y ay, b.x bx, b.y by, type FROM passpunktpos a, passpunktpos b, passpunkte p WHERE a.pid = b.pid and a.bid > b.bid and a.pid = p.pid),
     bester as (SELECT abid, bbid FROM liste group by abid, bbid order by sum( CASE WHEN type = 'manual' THEN 3 WHEN type = 'aruco' THEN 2 WHEN type = 'SIFT' THEN 1 END) desc limit 1)
     SELECT liste.* FROM liste, bester  where liste.abid = bester.abid and liste.bbid = bester.bbid""")
-    liste = cur.fetchall()
+    liste: List[List[Any]] = cur.fetchall()
 
     pts1 = []
     pts2 = []
-    pids = []
+    pids_array: List[int] = []
     weights = []
-    bild1 = None
-    bild2 = None
+    bild1: int = -1
+    bild2: int = -1
 
     for eintrag in liste:
         bild1, bild2, pid, ax, ay, bx, by, typ = eintrag
         # print(eintrag)
-        pids.append(pid)
+        pids_array.append(pid)
         pts1.append([float(ax), float(ay)])
         pts2.append([float(bx), float(by)])
 
@@ -53,7 +55,10 @@ def naeherungswerte(datenbank, show_figures=False):
         else:
             weights.append(3)
 
-    pids = np.int32(pids)
+    if (bild2 == -1 or bild1 == -1):
+        return
+
+    pids = np.array(pids_array, dtype=np.int32)
 
     cur.execute("UPDATE bilder SET lx = 0, ly = 0, lz = 0, lrx = 0, lry = 0, lrz = 0 WHERE bid = ?;",
                 (bild1,))
@@ -75,7 +80,7 @@ def naeherungswerte(datenbank, show_figures=False):
     print(len(points1n.T))
 
     maxcount = 0
-    maxauswahl = 0
+    maxauswahl: NDArray[Any] | None = None
 
     for i in range(1000):
         auswahl = choices(range(len(weights)), weights, k=8)
@@ -101,7 +106,8 @@ def naeherungswerte(datenbank, show_figures=False):
 
     P1 = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
 
-    _, R, t, mask = cv2.recoverPose(E, points1n[:2].T, points2n[:2].T)
+    _, R, t, mask = cv2.recoverPose(
+        E, points1n[:2].T, points2n[:2].T, np.eye(3))
 
     R = np.linalg.inv(R)
     t = -R@t
@@ -133,16 +139,17 @@ def naeherungswerte(datenbank, show_figures=False):
         ax.plot(-P2[0, 3], -P2[1, 3], -P2[2, 3], 'g.')
         ax.set_xlabel('x axis')
         ax.set_ylabel('y axis')
-        ax.set_zlabel('z axis')
-        ax.view_init(elev=135, azim=90)
+        ax.set_zlabel('z axis')  # type: ignore
+        ax.view_init(elev=135, azim=90)  # type: ignore
         plt.axis('square')
-        ax.set_ylim([-2, 3])
-        ax.set_xlim([-2, 3])
-        ax.set_zlim([-2, 3])
+        ax.set_ylim(-2, 3)
+        ax.set_xlim(-2, 3)
+        ax.set_zlim(-2, 3)  # type: ignore
         plt.show()
 
-    daten = zip(tripoints3d[0], tripoints3d[1], tripoints3d[2], np.int32(pids))
-    daten = [[d[0], d[1], d[2], int(d[3])] for d in daten]
+    datenzip = zip(tripoints3d[0], tripoints3d[1],
+                   tripoints3d[2], np.array(pids, dtype=np.int32))
+    daten = [[d[0], d[1], d[2], int(d[3])] for d in datenzip]
     cur.executemany(
         "UPDATE passpunkte SET lx = ?, ly = ?, lz = ? WHERE pid = ?", daten)
     print(cur.rowcount)
@@ -152,7 +159,7 @@ def naeherungswerte(datenbank, show_figures=False):
     db.close()
 
 
-def get_kameramatrix(cur: sqlite3.Cursor, bid):
+def get_kameramatrix(cur: sqlite3.Cursor, bid: int) -> NDArray[np.float32]:
     cur.execute(
         """SELECT fx, fy, x0, y0 FROM kameras WHERE kid = (SELECT kamera FROM bilder WHERE bid=?) LIMIT 1""", (bid,))
     fx, fy, x0, y0 = cur.fetchone()
@@ -162,7 +169,7 @@ def get_kameramatrix(cur: sqlite3.Cursor, bid):
                      [0, 0, 1]])
 
 
-def cart2hom(arr):
+def cart2hom(arr: NDArray[np.float32]) -> NDArray[np.float32]:
     """ Convert catesian to homogenous points by appending a row of 1s
     :param arr: array of shape (num_dimension x num_points)
     :returns: array of shape ((num_dimension+1) x num_points)
@@ -172,7 +179,7 @@ def cart2hom(arr):
     return np.asarray(np.vstack([arr, np.ones(arr.shape[1])]))
 
 
-def scale_and_translate_points(points):
+def scale_and_translate_points(points: NDArray[np.float32]) -> tuple[Any, NDArray[Any]]:
     """ Scale and translate image points so that centroid of the points
         are at the origin and avg distance to the origin is equal to sqrt(2).
         Hartley p109
@@ -195,7 +202,7 @@ def scale_and_translate_points(points):
     return np.dot(norm3d, points), norm3d
 
 
-def correspondence_matrix(p1, p2):
+def correspondence_matrix(p1: NDArray[np.float32], p2: NDArray[np.float32]) -> NDArray[np.float64]:
     """Each row in the A matrix below is constructed as
         [x'*x, x'*y, x', y'*x, y'*y, y', x, y, 1]
         Hartley p279"""
@@ -209,7 +216,7 @@ def correspondence_matrix(p1, p2):
     ]).T
 
 
-def compute_essential_normalized(p1, p2):
+def compute_essential_normalized(p1: NDArray[np.float32], p2: NDArray[np.float32]) -> NDArray[np.float64]:
     """ Computes the fundamental or essential matrix from corresponding points
         using the normalized 8 point algorithm.
         Hartley p294
@@ -230,13 +237,13 @@ def compute_essential_normalized(p1, p2):
     A = correspondence_matrix(p1n, p2n)
     # compute linear least square solution
     U, S, V = np.linalg.svd(A)
-    F = V[-1].reshape(3, 3)
+    F: NDArray[np.float64] = V[-1].reshape(3, 3)
 
     # constrain F. Make rank 2 by zeroing out last singular value
     # Hartley p. 259
     U, S, V = np.linalg.svd(F)
     # S[-1] = 0 # Fundamental Hartley p.281
-    S = [1, 1, 0]  # Force rank 2 and equal eigenvalues
+    S = np.array([1, 1, 0])  # Force rank 2 and equal eigenvalues
     F = U @ np.diag(S) @ V
 
     # reverse preprocessing of coordinates
@@ -247,7 +254,7 @@ def compute_essential_normalized(p1, p2):
     return F / F[2, 2]
 
 
-def reconstruct_points(p1, p2, m1, m2):
+def reconstruct_points(p1: NDArray[np.float32], p2: NDArray[np.float32], m1: NDArray[np.float32], m2: NDArray[np.float32]) -> NDArray[np.float64]:
     num_points = p1.shape[1]
     res = np.ones((4, num_points))
 
@@ -257,7 +264,7 @@ def reconstruct_points(p1, p2, m1, m2):
     return res
 
 
-def skew(x):
+def skew(x: NDArray[np.float32]) -> NDArray[np.float64]:
     """ Create a skew symmetric matrix *A* from a 3d vector *x*.
         Property: np.cross(A, v) == np.dot(x, v)
     :param x: 3d vector
@@ -267,10 +274,10 @@ def skew(x):
         [0, -x[2], x[1]],
         [x[2], 0, -x[0]],
         [-x[1], x[0], 0]
-    ])
+    ], dtype=np.float64)
 
 
-def reconstruct_one_point(pt1, pt2, m1, m2):
+def reconstruct_one_point(pt1: NDArray[np.float32], pt2: NDArray[np.float32], m1: NDArray[np.float32], m2: NDArray[np.float32]) -> NDArray[np.float32]:
     """
         pt1 and m1 * X are parallel and cross product = 0
         pt1 x m1 * X  =  pt2 x m2 * X  =  0
@@ -285,7 +292,7 @@ def reconstruct_one_point(pt1, pt2, m1, m2):
     return P / P[3]
 
 
-def linear_triangulation(p1, p2, m1, m2):
+def linear_triangulation(p1: NDArray[np.float32], p2: NDArray[np.float32], m1: NDArray[np.float32], m2: NDArray[np.float32]) -> NDArray[np.float64]:
     """
     Linear triangulation (Hartley ch 12.2 pg 312) to find the 3D point X
     where p1 = m1 * X and p2 = m2 * X. Solve AX = 0.

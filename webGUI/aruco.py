@@ -1,15 +1,15 @@
-import sqlite3
-import cv2
-from cv2 import aruco as cv2_aruco
+from sqlite3 import connect, Connection
+from cv2 import aruco as cv2_aruco, imread, cvtColor, COLOR_BGR2GRAY, LUT
 import numpy as np
 from create_database import create_database
 
 
 class aruco:
-    def create_from_db_path(datenbank):
-        return aruco(sqlite3.connect(datenbank))
+    @staticmethod
+    def create_from_db_path(datenbank: str) -> 'aruco':
+        return aruco(connect(datenbank))
 
-    def __init__(self, db):
+    def __init__(self, db: Connection):
         self.db = db
 
         LUT_IN = [0, 158, 216, 255]
@@ -24,10 +24,10 @@ class aruco:
 
         create_database(self.db)
 
-    def find_markers(self, id, pfad):
-        cv_img = cv2.imread(pfad)
-        tmp = cv2.LUT(cv_img, self.lut)
-        gray = cv2.cvtColor(tmp, cv2.COLOR_BGR2GRAY)
+    def find_markers(self, id: int, pfad: str) -> None:
+        cv_img = imread(pfad)
+        tmp = LUT(cv_img, self.lut)
+        gray = cvtColor(tmp, COLOR_BGR2GRAY)
         corners, ids, _ = cv2_aruco.detectMarkers(
             gray, self.aruco_dict, parameters=self.parameter)
         try:
@@ -45,7 +45,7 @@ class aruco:
         self.db.commit()
         return
 
-    def find_all_aruco(self):
+    def find_all_aruco(self) -> None:
         cur = self.db.cursor()
         cur.execute(
             "SELECT bid, pfad FROM bilder")
