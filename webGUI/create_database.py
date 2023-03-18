@@ -1,4 +1,7 @@
-def create_database(db):
+from sqlite3 import Connection
+
+
+def create_database(db: Connection) -> None:
 
     db.execute("""CREATE TABLE IF NOT EXISTS kameras (
             kid INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -1,18 +1,17 @@
 from glob import glob
-import sqlite3
+from sqlite3 import connect, Connection
 from PIL import Image
 from PIL import ExifTags
-import utm
 from xml.etree import ElementTree as ET
-import numpy as np
 import math
 from random import choices
 from create_database import create_database
+from typing import Tuple
 
 
-def metadaten(datenbank, glob_pfad, maxnumber: int = 0):
+def metadaten(datenbank: str, glob_pfad: str, maxnumber: int = 0) -> None:
     print("Metadaten")
-    db = sqlite3.connect(datenbank)
+    db = connect(datenbank)
     create_database(db)
     bilder = glob(glob_pfad)
     if not maxnumber == 0:
@@ -25,11 +24,11 @@ def metadaten(datenbank, glob_pfad, maxnumber: int = 0):
     db.close()
 
 
-def load_metadata(db, bild):
+def load_metadata(db: Connection, bild: str) -> None:
     img = Image.open(bild)
-    exif = img._getexif()
+    exif = img.getexif()
     model = ""
-    fx, fy, x0, y0, x, y, z, rx, ry, rz, width, height = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    fx, fy, x0, y0, x, y, z, rx, ry, rz, width, height = 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.
     for tag, value in exif.items():
         if 'GPSInfo' == ExifTags.TAGS.get(tag, tag):
             n = float(value[2][0])+float(value[2][1]) / \
@@ -85,7 +84,7 @@ def load_metadata(db, bild):
         "INSERT OR REPLACE INTO bilder (kamera, pfad, x, y, z, rx, ry, rz) VALUES ((SELECT kid FROM kameras WHERE model = ? and fx = ? LIMIT 1), ?,?,?,?,?,?,?)", (model, fx/width, bild, x, y, z, rx, ry, rz))
 
 
-def to_ecef(lat, lon, h):
+def to_ecef(lat: float, lon: float, h: float) -> Tuple[float, float, float]:
     lat = math.radians(lat)
     lon = math.radians(lon)
     a = 6378137.0

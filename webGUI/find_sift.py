@@ -3,16 +3,17 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from create_database import create_database
+from typing import List, Tuple
 
 
 class find_sift():
 
-    def __init__(self, datenbank, soll_width=600):
+    def __init__(self, datenbank: str, soll_width: int = 600):
         self.datenbank = datenbank
         self.soll_width = soll_width
         self.sift = cv2.SIFT_create()
 
-    def find_sift_in_image(self, image):
+    def find_sift_in_image(self, image: Tuple[int, str]) -> None:
         id, pfad = image
         img = cv2.imread(pfad)
         scale_percent = self.soll_width/img.shape[1]
@@ -30,12 +31,12 @@ class find_sift():
         pt = np.array([n.pt for n in kp])/self.soll_width
         np.savez_compressed(pfad + '.npz', id=id, desc=desc, pt=pt)
 
-    def find_sift_in_all(self):
+    def find_sift_in_all(self) -> None:
         db = sqlite3.connect(self.datenbank)
         cur = db.cursor()
         cur.execute(
             "SELECT bid, pfad FROM bilder left join kameras on kamera = kid ORDER BY pfad DESC")
-        bilder = cur.fetchall()
+        bilder: List[Tuple[int, str]] = cur.fetchall()
         cur.close()
         db.close()
 

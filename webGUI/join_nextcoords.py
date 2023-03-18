@@ -3,9 +3,10 @@ import sqlite3
 import numpy as np
 from naeherungswerte import reconstruct_one_point
 import matplotlib.pyplot as plt
+from numpy.typing import NDArray
 
 
-def join_nextcoords(datenbank, show_figures=False):
+def join_nextcoords(datenbank: str, show_figures: bool = False) -> None:
     db = sqlite3.connect(datenbank)
     cur = db.cursor()
 
@@ -29,15 +30,20 @@ def join_nextcoords(datenbank, show_figures=False):
 
     print(f"Gefundendene Koordinaten: {len(neue)}")
 
+    if len(neue) == 0:
+        return
+
+    P2: NDArray[np.float32] = np.zeros((3, 4), dtype=np.float32)
+
     for pid, ppax, ppay, ppbx, ppby, alx, aly, alz, alrx, alry, alrz, afx, afy, ax0, ay0, blx, bly, blz, blrx, blry, blrz, bfx, bfy, bx0, by0 in neue:
         # print(alrx, alry, alrz, blrx, blry, blrz)
-        R1, _ = cv2.Rodrigues(np.float32([alrx, alry, alrz]))
-        P1 = np.c_[R1, [alx, aly, alz]]
+        R1, _ = cv2.Rodrigues(np.array([alrx, alry, alrz], dtype=np.float32))
+        P1: NDArray[np.float32] = np.c_[R1, [alx, aly, alz]]
         K1 = np.array([[afx, 0, ax0],
                       [0, afy, ay0],
                       [0, 0, 1]])
 
-        R2, _ = cv2.Rodrigues(np.float32([blrx, blry, blrz]))
+        R2, _ = cv2.Rodrigues(np.array([blrx, blry, blrz], dtype=np.float32))
         P2 = np.c_[R2, [blx, bly, blz]]
         K2 = np.array([[bfx, 0, bx0],
                       [0, bfy, by0],
@@ -60,12 +66,12 @@ def join_nextcoords(datenbank, show_figures=False):
         ax.plot(-P2[0, 3], -P2[1, 3], -P2[2, 3], 'g.')
         ax.set_xlabel('x axis')
         ax.set_ylabel('y axis')
-        ax.set_zlabel('z axis')
-        ax.view_init(elev=135, azim=90)
+        ax.set_zlabel('z axis')  # type: ignore
+        ax.view_init(elev=135, azim=90)  # type: ignore
         plt.axis('square')
-        ax.set_ylim([-2, 3])
-        ax.set_xlim([-2, 3])
-        ax.set_zlim([-2, 3])
+        ax.set_ylim(-2, 3)
+        ax.set_xlim(-2, 3)
+        ax.set_zlim(-2, 3)  # type: ignore
         plt.show()
 
     cur.executemany(

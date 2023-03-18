@@ -4,36 +4,37 @@ import sqlite3
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
+from numpy.typing import NDArray
 
 num_bild_param = 6
 num_cam_param = 4
 num_pass_param = 3
 
 
-def bundle_adjustment(datenbank):
+def bundle_adjustment(datenbank: str) -> None:
     db = sqlite3.connect(datenbank)
     cur = db.cursor()
 
     cur.execute(
         """SELECT kid, fx, fy, x0, y0 FROM kameras WHERE kid in (SELECT distinct kamera FROM bilder WHERE lx IS NOT NULL)""")
     kamera = np.array(cur.fetchall())
-    kamera_ids = np.int32(kamera[:, 0])
+    kamera_ids = np.array(kamera[:, 0], dtype=np.int32)
 
     cur.execute(
         """SELECT bid, kamera, lx, ly, lz, lrx, lry, lrz FROM bilder WHERE lx IS NOT NULL""")
     bilder = np.array(cur.fetchall())
-    bilder_ids = np.int32(bilder[:, :2])
+    bilder_ids = np.array(bilder[:, :2], dtype=np.int32)
 
     cur.execute(
         """SELECT pid, lx, ly, lz from passpunkte WHERE lx IS NOT NULL""")
     passpunkte = np.array(cur.fetchall())
-    passpunkte_ids = np.int32(passpunkte[:, 0])
+    passpunkte_ids = np.array(passpunkte[:, 0], dtype=np.int32)
 
     cur.execute("""SELECT ppid, pid, bid, x, y FROM passpunktpos WHERE pid in (SELECT pid from passpunkte WHERE lx IS NOT NULL) AND bid in (SELECT bid FROM bilder WHERE lx IS NOT NULL)""")
     messung = np.array(cur.fetchall())
-    messung_ids = np.int32(messung[:, :3])
+    messung_ids = np.array(messung[:, :3], dtype=np.int32)
 
-    l = messung[:, -2:].ravel()
+    l = np.array(messung[:, -2:].ravel(), dtype=np.float64)
 
     x0 = np.hstack((kamera[:, 1:].ravel(),
                    bilder[:, 2:].ravel(), passpunkte[:, 1:].ravel()))
@@ -53,8 +54,8 @@ def bundle_adjustment(datenbank):
         bild_id = bild_id[0]
         messung_bild_id[i] = bild_id
 
-        camera_id,  = np.where(kamera_ids[:] == bilder[bild_id, 1])
-        camera_id = camera_id[0]
+        camera_id_array,  = np.where(kamera_ids[:] == bilder[bild_id, 1])
+        camera_id = camera_id_array[0]
         messung_kamera_id[i] = camera_id
 
         passpunkt_id, = np.where(passpunkte_ids[:] == m[1])
@@ -71,7 +72,7 @@ def bundle_adjustment(datenbank):
             num_bild_param + passpunkt_id * num_pass_param
         A[2*i:2*i+2, offset:offset + num_pass_param] = 1
 
-    def project(x0):
+    def project(x0: NDArray[np.float32]) -> NDArray[np.float32]:
         p = np.empty(len(l), dtype=np.float32)
 
         K = []
@@ -109,7 +110,7 @@ def bundle_adjustment(datenbank):
         return p.ravel()-l
 
     res = least_squares(project, x0, jac_sparsity=A, verbose=2,
-                        x_scale='jac', method='trf', ftol=1e-3)
+                        x_scale='jac', method='trf', ftol=1e-3)  # type: ignore
     """
     print(res.x)
 

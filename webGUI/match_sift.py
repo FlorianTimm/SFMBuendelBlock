@@ -5,10 +5,10 @@ import matplotlib.pyplot as plt
 
 
 class match_sift:
-    def __init__(self, datenbank):
+    def __init__(self, datenbank: str):
         self.datenbank = datenbank
 
-    def match_sift(self, next_images=3, nearest_images=5):
+    def match_sift(self, next_images: int = 3, nearest_images: int = 5) -> None:
         db = sqlite3.connect(self.datenbank)
         cur = db.cursor()
         cur.execute(

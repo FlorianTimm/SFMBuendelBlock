@@ -4,7 +4,7 @@ import numpy as np
 from naeherungswerte import get_kameramatrix, reconstruct_one_point, cart2hom
 
 
-def join_nextpictures(datenbank):
+def join_nextpictures(datenbank: str) -> None:
     db = sqlite3.connect(datenbank)
     cur = db.cursor()
 
@@ -14,7 +14,7 @@ def join_nextpictures(datenbank):
             WHERE b.lx IS NULL AND p.lx is not null group by b.bid  HAVING COUNT(*) >= 4 order by count(*) DESC""")
     daten = cur.fetchall()
 
-    for bid, kid in daten:
+    for bid, _ in daten:
         cur.execute("""SELECT pp.x, pp.y, lx, ly, lz FROM passpunktpos pp
             JOIN passpunkte p ON pp.pid = p.pid
             WHERE pp.bid = ? AND p.lx is not null""", (bid, ))

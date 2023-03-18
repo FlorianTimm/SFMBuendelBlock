@@ -1,11 +1,10 @@
 from webbrowser import open_new_tab
-from threading import Timer
-from flask import Flask, request, send_from_directory, send_file
+from flask import Flask, request, send_from_directory, send_file, Response
 from os import mkdir, listdir
 from os.path import exists
 from flask.json import jsonify
 from create_database import create_database
-import sqlite3
+from sqlite3 import connect, Connection
 
 from metadaten import load_metadata
 from aruco import aruco
@@ -15,6 +14,8 @@ from naeherungswerte import naeherungswerte
 from join_nextcoords import join_nextcoords
 from join_nextpictures import join_nextpictures
 from bundle_adjustment import bundle_adjustment
+from typing import Any, Dict
+from werkzeug import Response as WerkzeugResponse
 
 app = Flask(__name__)
 
@@ -22,23 +23,23 @@ PROJEKTPATH = './projekte/'
 
 
 @app.route("/")
-def hello():
+def hello() -> str:
     return "Hello World! <a href='/tool/index.html'>Passpunkt-Tool</a>"
 
 
 @app.route('/tool/<path:path>')
-def send_report(path):
+def send_report(path: str) -> Response:
     print(path)
     return send_from_directory('../passpunkt_tool/dist', path)
 
 
 @app.route('/api/', methods=["GET"])
-def get_project():
+def get_project() -> Response:
     return jsonify(listdir(PROJEKTPATH))
 
 
 @app.route('/api/<projekt>', methods=["PUT"])
-def create_project(projekt):
+def create_project(projekt: str) -> str:
     try:
         mkdir(PROJEKTPATH + '/' + projekt)
         db = open_database(projekt)
@@ -49,12 +50,14 @@ def create_project(projekt):
 
 
 @app.route('/api/<projekt>/images/', methods=["GET", "POST"])
-def get_images(projekt):
+def get_images(projekt: str) -> Response | str:
     path = PROJEKTPATH + projekt + '/images/'
     if not exists(path):
         mkdir(path)
     if request.method == 'POST':
         f = request.files['file']
+        if (f.filename is None or path is None):
+            return "FALSE"
         f.save(path + f.filename)
         db = open_database(projekt)
         load_metadata(db, path + f.filename)
@@ -78,12 +81,12 @@ def get_images(projekt):
 
 
 @app.route('/api/<projekt>/passpunkte/', methods=["GET", "POST"])
-def get_passpunkte(projekt):
+def get_passpunkte(projekt: str) -> str | Response:
     if request.method == 'POST':
         db = open_database(projekt)
-        data = request.json()
+        data = request.json
         print(data)
-        #TODO: speichern
+        # TODO: speichern
         db.commit()
         db.close()
         return "TRUE"
@@ -98,7 +101,7 @@ def get_passpunkte(projekt):
 
 
 @app.route('/api/<projekt>/passpunkte/<passpunkt>/<image>', methods=["DELETE", "PUT"])
-def delete_modify_passpunkte(projekt, passpunkt, image):
+def delete_modify_passpunkte(projekt: str, passpunkt: str, image: str) -> str | Response:
     db = open_database(projekt)
     if request.method == 'DELETE':
         db.execute(
@@ -107,7 +110,9 @@ def delete_modify_passpunkte(projekt, passpunkt, image):
         db.close()
         return "TRUE"
     else:
-        daten = request.json
+        daten: Dict[str, Any] | None = request.json
+        if daten is None:
+            return "FALSE"
         cur = db.cursor()
         if daten['passpunkt'] == -1:
             cur.execute(
@@ -128,12 +133,12 @@ def delete_modify_passpunkte(projekt, passpunkt, image):
 
 
 @app.route('/api/<projekt>/passpunkte/<passpunkt>/position', methods=["GET", "POST"])
-def get_passpunkt_bilder(projekt, passpunkt):
+def get_passpunkt_bilder(projekt: str, passpunkt: str) -> str | Response:
     db = open_database(projekt)
     if request.method == 'POST':
-        data = request.json()
+        data = request.json
         print(data)
-        #TODO: speichern
+        # TODO: speichern
         db.commit()
         db.close()
         return "TRUE"
@@ -148,7 +153,7 @@ def get_passpunkt_bilder(projekt, passpunkt):
 
 
 @app.route('/api/<projekt>/image/<image>/passpunkte', methods=["GET"])
-def get_bilder_passpunkte(projekt, image):
+def get_bilder_passpunkte(projekt: str, image: str) -> str | Response:
     db = open_database(projekt)
     cursor = db.cursor()
     cursor.execute(
@@ -160,7 +165,7 @@ def get_bilder_passpunkte(projekt, image):
 
 
 @app.route('/api/<projekt>/images/<nr>/file')
-def show_images(projekt, nr):
+def show_images(projekt: str, nr: str) -> WerkzeugResponse | Any:
     db = open_database(projekt)
     cursor = db.cursor()
     cursor.execute("SELECT pfad FROM bilder where bid = ?", (nr,))
@@ -171,7 +176,7 @@ def show_images(projekt, nr):
 
 
 @app.route('/api/<projekt>/find_aruco')
-def find_aruco(projekt):
+def find_aruco(projekt: str) -> str:
     db = open_database(projekt)
     ar = aruco(db)
     ar.find_all_aruco()
@@ -180,56 +185,56 @@ def find_aruco(projekt):
 
 
 @app.route('/api/<projekt>/find_sift')
-def find_sift_all(projekt):
+def find_sift_all(projekt: str) -> str:
     sift = find_sift(database_path(projekt))
     sift.find_sift_in_all()
     return 'TRUE'
 
 
 @app.route('/api/<projekt>/match_sift')
-def match_sift_all(projekt):
+def match_sift_all(projekt: str) -> str:
     sift = match_sift(database_path(projekt))
     sift.match_sift()
     return 'TRUE'
 
 
 @app.route('/api/<projekt>/next_image')
-def web_join_nextpictures(projekt):
+def web_join_nextpictures(projekt: str) -> str:
     join_nextpictures(database_path(projekt))
     return 'TRUE'
 
 
 @app.route('/api/<projekt>/next_coordinates')
-def web_join_nextcoords(projekt):
+def web_join_nextcoords(projekt: str) -> str:
     join_nextcoords(database_path(projekt))
     return 'TRUE'
 
 
 @app.route('/api/<projekt>/start_pair')
-def start_pair(projekt):
+def start_pair(projekt: str) -> str:
     naeherungswerte(database_path(projekt))
     return 'TRUE'
 
 
 @app.route('/api/<projekt>/bundle_block')
-def bundle_block(projekt):
+def bundle_block(projekt: str) -> str:
     bundle_adjustment(database_path(projekt))
     return 'TRUE'
 
 
-def database_path(projekt):
+def database_path(projekt: str) -> str:
     return PROJEKTPATH + projekt + '/datenbank.db'
 
 
-def open_database(projekt):
+def open_database(projekt: str) -> Connection:
     path = database_path(projekt)
-    return sqlite3.connect(path)
+    return connect(path)
 
 
-def open_browser():
+def open_browser() -> None:
     open_new_tab("http://127.0.0.1:2000")
 
 
 if __name__ == "__main__":
-    #Timer(1, open_browser).start()
+    # Timer(1, open_browser).start()
     app.run(port=2000)  # , threaded=False)

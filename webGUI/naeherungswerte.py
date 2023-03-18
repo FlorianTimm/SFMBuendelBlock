@@ -251,7 +251,8 @@ def compute_essential_normalized(p1: NDArray[np.float32], p2: NDArray[np.float32
     # Hartley p282
     F = T1.T@F@T2
 
-    return F / F[2, 2]
+    np.divide(F, F[2, 2], F)
+    return F
 
 
 def reconstruct_points(p1: NDArray[np.float32], p2: NDArray[np.float32], m1: NDArray[np.float32], m2: NDArray[np.float32]) -> NDArray[np.float64]:
@@ -277,7 +278,7 @@ def skew(x: NDArray[np.float32]) -> NDArray[np.float64]:
     ], dtype=np.float64)
 
 
-def reconstruct_one_point(pt1: NDArray[np.float32], pt2: NDArray[np.float32], m1: NDArray[np.float32], m2: NDArray[np.float32]) -> NDArray[np.float32]:
+def reconstruct_one_point(pt1: NDArray[np.float32], pt2: NDArray[np.float32], m1: NDArray[np.float32], m2: NDArray[np.float32]) -> NDArray[np.float64]:
     """
         pt1 and m1 * X are parallel and cross product = 0
         pt1 x m1 * X  =  pt2 x m2 * X  =  0
@@ -289,7 +290,8 @@ def reconstruct_one_point(pt1: NDArray[np.float32], pt2: NDArray[np.float32], m1
     U, S, V = np.linalg.svd(A)
     P = np.ravel(V[-1, :4])
 
-    return P / P[3]
+    np.divide(P, P[3])
+    return P
 
 
 def linear_triangulation(p1: NDArray[np.float32], p2: NDArray[np.float32], m1: NDArray[np.float32], m2: NDArray[np.float32]) -> NDArray[np.float64]:
