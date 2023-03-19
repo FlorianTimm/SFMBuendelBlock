@@ -226,7 +226,8 @@ def bundle_block(projekt: str) -> str:
 
 @app.route('/api/<projekt>/exif_download')
 def exif_download(projekt: str) -> str:
-    transformation(database_path(projekt))
+    t = transformation(database_path(projekt))
+    t.calc_parameters()
     e = exif(PROJEKTPATH + projekt, database_path(projekt))
     e.write_exif()
     return 'TRUE'

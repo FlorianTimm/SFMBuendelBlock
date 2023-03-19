@@ -20,7 +20,6 @@ class exif:
 
         if not exists(exif_path):
             mkdir(exif_path)
-        print(bilder)
 
         transformer = Transformer.from_crs(
             {"proj": 'geocent', "ellps": 'WGS84', "datum": 'WGS84'},
@@ -32,8 +31,7 @@ class exif:
             img = Image.open(pfad)
             exif = img.getexif()
             gpsid = list(TAGS.keys())[list(TAGS.values()).index("GPSInfo")]
-            gps = exif.get_ifd(gpsid)
-            print(gps)
+            #gps = exif.get_ifd(gpsid)
 
             lon, lat, h = transformer.transform(x, y, z, radians=False)
 
