@@ -13,6 +13,7 @@ export default class Berechnung extends Tool {
         document.getElementById("buttonNextImage")?.addEventListener("click", this.nextImage.bind(this))
         document.getElementById("buttonNextCoordinates")?.addEventListener("click", this.nextCoordinates.bind(this))
         document.getElementById("buttonBundleBlock")?.addEventListener("click", this.bundleBlock.bind(this))
+        document.getElementById("buttonExifDownload")?.addEventListener("click", this.exifDownload.bind(this))
     }
 
     private async findSift() {
@@ -43,5 +44,9 @@ export default class Berechnung extends Tool {
     private async bundleBlock() {
         await fetch("/api/" + this.gui.projekt + "/bundle_block")
         alert("Fertig!")
+    }
+
+    private async exifDownload() {
+        await fetch("/api/" + this.gui.projekt + "/exif_download")
     }
 }

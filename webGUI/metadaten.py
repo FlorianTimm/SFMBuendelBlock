@@ -7,6 +7,8 @@ import math
 from random import choices
 from create_database import create_database
 from typing import Tuple
+import numpy as np
+from pyproj import Transformer
 
 
 def metadaten(datenbank: str, glob_pfad: str, maxnumber: int = 0) -> None:
@@ -85,6 +87,9 @@ def load_metadata(db: Connection, bild: str) -> None:
 
 
 def to_ecef(lat: float, lon: float, h: float) -> Tuple[float, float, float]:
+    """ 
+    a = 6378137.0
+    b = 6356752.314245
     lat = math.radians(lat)
     lon = math.radians(lon)
     a = 6378137.0
@@ -93,7 +98,13 @@ def to_ecef(lat: float, lon: float, h: float) -> Tuple[float, float, float]:
     x = (n+h)*math.cos(lat)*math.cos(lon)
     y = (n+h)*math.cos(lat)*math.sin(lon)
     z = (b**2/a**2*n+h)*math.sin(lat)
-    return x, y, z
+    return x, y, z """
+
+    transformer = Transformer.from_crs(
+        {"proj": 'latlong', "ellps": 'WGS84', "datum": 'WGS84'},
+        {"proj": 'geocent', "ellps": 'WGS84', "datum": 'WGS84'},
+    )
+    return transformer.transform(lat, lon, h)
 
 
 if __name__ == "__main__":

@@ -14,6 +14,8 @@ from naeherungswerte import naeherungswerte
 from join_nextcoords import join_nextcoords
 from join_nextpictures import join_nextpictures
 from bundle_adjustment import bundle_adjustment
+from exif import exif
+from transformation import transformation
 from typing import Any, Dict
 from werkzeug import Response as WerkzeugResponse
 
@@ -219,6 +221,14 @@ def start_pair(projekt: str) -> str:
 @app.route('/api/<projekt>/bundle_block')
 def bundle_block(projekt: str) -> str:
     bundle_adjustment(database_path(projekt))
+    return 'TRUE'
+
+
+@app.route('/api/<projekt>/exif_download')
+def exif_download(projekt: str) -> str:
+    transformation(database_path(projekt))
+    e = exif(PROJEKTPATH + projekt, database_path(projekt))
+    e.write_exif()
     return 'TRUE'
 
 
