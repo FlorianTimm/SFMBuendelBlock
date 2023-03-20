@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.0.0">
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>390</x>
+      <y>390</y>
+      <w>120</w>
+      <h>160</h>
+    </coordinates>
+    <panel_attributes>kameras
+--
+_kid:int_
+model:str
+fx:float
+fy:float
+x0:float
+y0:float
+pixelx:int
+pixely:int</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>630</x>
+      <y>350</y>
+      <w>100</w>
+      <h>280</h>
+    </coordinates>
+    <panel_attributes>bilder
+--
+_bid:int_
+pfad:str
+_kamera:int_
+x:float
+y:float
+z:float
+rx:float
+ry:float
+rz:float
+lx:float
+ly:float
+lz:float
+lrx:float
+lry:float
+lrz:float</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>850</x>
+      <y>320</y>
+      <w>120</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>passpunktpos
+--
+_ppid:int_
+_pid:int_
+_bid:int_
+x:float
+y:float</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1080</x>
+      <y>340</y>
+      <w>120</w>
+      <h>180</h>
+    </coordinates>
+    <panel_attributes>passpunkt
+--
+_pid:int_
+name:str
+type:str
+x:float
+y:float
+z:float
+lx:float
+ly:float
+lz:float</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>500</x>
+      <y>410</y>
+      <w>150</w>
+      <h>40</h>
+    </coordinates>
+    <panel_attributes>lt=-
+m1=1
+m2=1..n</panel_attributes>
+    <additional_attributes>10.0;10.0;130.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>720</x>
+      <y>370</y>
+      <w>150</w>
+      <h>40</h>
+    </coordinates>
+    <panel_attributes>lt=-
+m1=1
+m2=1..n</panel_attributes>
+    <additional_attributes>10.0;10.0;130.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>960</x>
+      <y>360</y>
+      <w>140</w>
+      <h>40</h>
+    </coordinates>
+    <panel_attributes>lt=-
+m2=1
+m1=1..n</panel_attributes>
+    <additional_attributes>10.0;10.0;120.0;10.0</additional_attributes>
+  </element>
+</diagram>

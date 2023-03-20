@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.0.0">
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates>
+      <x>950</x>
+      <y>70</y>
+      <w>380</w>
+      <h>220</h>
+    </coordinates>
+    <panel_attributes>naeherungswerte
+--
+naeherungswerte(datenbank, show_figures=False)
+get_kameramatrix(cur, bid)
+cart2hom(arr)
+scale_and_translate_points(points)
+correspondence_matrix(p1, p2)
+compute_essential_normalized(p1,p2)
+reconstruct_points(p1,p2,m1,m2)
+skew(x)
+reconstruct_one_point(pt1, pt2, m1, m2)
+linear_triangulation(p1, p2, m1, m2)
+
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates>
+      <x>950</x>
+      <y>470</y>
+      <w>380</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>bundle_adjustment
+--
+bundle_adjustment(datenbank)
+project(x0)
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates>
+      <x>130</x>
+      <y>470</y>
+      <w>400</w>
+      <h>50</h>
+    </coordinates>
+    <panel_attributes>create_database
+--
+create_database(datenbank)
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates>
+      <x>550</x>
+      <y>70</y>
+      <w>380</w>
+      <h>150</h>
+    </coordinates>
+    <panel_attributes>find_sift
+--
+
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>570</x>
+      <y>110</y>
+      <w>340</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>find_sift
+--
+init(datenbank, soll_width=600)
+find_sift_in_image(image)
+find_sift_in_all()</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates>
+      <x>550</x>
+      <y>250</y>
+      <w>380</w>
+      <h>160</h>
+    </coordinates>
+    <panel_attributes>match_sift
+--
+
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>570</x>
+      <y>290</y>
+      <w>340</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>match_sift
+--
+init(datenbank, soll_width=600)
+match_sift(next_images=3, nearest_images=5)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates>
+      <x>130</x>
+      <y>540</y>
+      <w>400</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>metadaten
+--
+metadaten(datenbank, pfad, maxnumber)
+load_medaten(db, bild)
+to_ecef(lat, lon, h)
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates>
+      <x>950</x>
+      <y>310</y>
+      <w>380</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>join_nextcoords
+--
+join_nextcoords(datenbank, show_figures=False)
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>570</x>
+      <y>470</y>
+      <w>340</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>aruco
+--
+init(datenbank)
+find_markers(id, pfad)
+find_all_aruco()</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates>
+      <x>550</x>
+      <y>430</y>
+      <w>380</w>
+      <h>150</h>
+    </coordinates>
+    <panel_attributes>aruco
+--
+
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates>
+      <x>130</x>
+      <y>70</y>
+      <w>400</w>
+      <h>380</h>
+    </coordinates>
+    <panel_attributes>webgui_start
+--
+hello()
+send_report(path)
+get_project()
+create_project(projekt)
+get_images(projekt)
+get_passpunkte(projekt)
+delete_modify_passpunkte(projekt, passpunkt, image)
+get_passpunkt_bilder(projekt, passpunkt)
+get_bilder_passpunkte(projekt, image)
+show_images(projekt, nr)
+find_aruco(projekt)
+find_sift_all(projekt)
+match_sift_all(projekt)
+web_join_nextpictures(projekt)
+web_join_nextcoords(projekt)
+start_pair(projekt)
+bundle_block(projekt)
+exif_download(projekt)
+database_path(projekt)
+open_database(projekt)
+open_browser()
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates>
+      <x>950</x>
+      <y>390</y>
+      <w>380</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>join_nextpictures
+--
+def join_nextpictures(datenbank)
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>570</x>
+      <y>640</y>
+      <w>340</w>
+      <h>80</h>
+    </coordinates>
+    <panel_attributes>transformation
+--
+init(datenbank)
+calc_parameters()
+transform_points()</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates>
+      <x>550</x>
+      <y>600</y>
+      <w>380</w>
+      <h>140</h>
+    </coordinates>
+    <panel_attributes>transformation
+--
+
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>970</x>
+      <y>620</y>
+      <w>340</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>exif
+--
+init(datenbank)
+write_exif()</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates>
+      <x>950</x>
+      <y>580</y>
+      <w>380</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>exif
+--
+
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+</diagram>
