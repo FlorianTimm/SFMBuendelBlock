@@ -12,7 +12,7 @@ class exif:
         self.cursor = self.db.cursor()
         self.path = path
 
-    def write_exif(self) -> None:
+    def write_exif(self) -> str:
         self.cursor.execute(
             "SELECT pfad, x,y,z,rx,ry,rz FROM bilder WHERE x is NOT NULL")
         bilder = self.cursor.fetchall()
@@ -58,6 +58,7 @@ class exif:
             img.save(neuerpfad, exif=exif)
 
             print("Schreibe ", pfad, ' nach ', neuerpfad)
+        return exif_path
 
     def __del__(self) -> None:
         self.cursor.close()

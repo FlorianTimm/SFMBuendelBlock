@@ -47,6 +47,8 @@ export default class Berechnung extends Tool {
     }
 
     private async exifDownload() {
-        await fetch("/api/" + this.gui.projekt + "/exif_download")
+        await fetch("/api/" + this.gui.projekt + "/exif_download").then(response => response.text()).then(txt => {
+            alert("Daten liegen unter " + txt)
+        });
     }
 }

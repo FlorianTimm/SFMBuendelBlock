@@ -228,9 +228,9 @@ def bundle_block(projekt: str) -> str:
 def exif_download(projekt: str) -> str:
     t = transformation(database_path(projekt))
     t.calc_parameters()
+    t.transform_points()
     e = exif(PROJEKTPATH + projekt, database_path(projekt))
-    e.write_exif()
-    return 'TRUE'
+    return e.write_exif()
 
 
 def database_path(projekt: str) -> str:
