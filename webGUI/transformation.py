@@ -63,6 +63,8 @@ class transformation:
         self.cursor.executemany(
             "UPDATE passpunkte SET x=?,y=?,z=? WHERE pid=?", punkte)
 
+        self.db.commit()
+
     def __del__(self) -> None:
         self.cursor.close()
         self.db.close()
