@@ -1,3 +1,4 @@
+from threading import Timer
 from webbrowser import open_new_tab
 from flask import Flask, request, send_from_directory, send_file, Response
 from os import mkdir, listdir
@@ -243,9 +244,9 @@ def open_database(projekt: str) -> Connection:
 
 
 def open_browser() -> None:
-    open_new_tab("http://127.0.0.1:2000")
+    open_new_tab("http://127.0.0.1:2000/tool/index.html")
 
 
 if __name__ == "__main__":
-    # Timer(1, open_browser).start()
+    Timer(1, open_browser).start()
     app.run(port=2000)  # , threaded=False)

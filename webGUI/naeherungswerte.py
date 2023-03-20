@@ -282,6 +282,8 @@ def reconstruct_one_point(pt1: NDArray[np.float32], pt2: NDArray[np.float32], m1
     """
         pt1 and m1 * X are parallel and cross product = 0
         pt1 x m1 * X  =  pt2 x m2 * X  =  0
+        :param p1, p2: 2D points in homo. or catesian coordinates. Shape (3 x n)
+        :param m1, m2: Camera matrices associated with p1 and p2. Shape (3 x 4)
     """
     A = np.vstack([
         np.dot(skew(pt1), m1),
