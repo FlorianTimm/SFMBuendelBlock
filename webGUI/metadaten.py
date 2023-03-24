@@ -28,7 +28,7 @@ def metadaten(datenbank: str, glob_pfad: str, maxnumber: int = 0) -> None:
 
 def load_metadata(db: Connection, bild: str) -> None:
     img = Image.open(bild)
-    exif = img.getexif()
+    exif = img._getexif()
     model = ""
     fx, fy, x0, y0, x, y, z, rx, ry, rz, width, height = 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.
     for tag, value in exif.items():
@@ -49,6 +49,10 @@ def load_metadata(db: Connection, bild: str) -> None:
             fx = float(value)
             fy = float(value)
             continue
+        if fx == 0 and 'FocalLength' == ExifTags.TAGS.get(tag, tag):
+            fx = float(value)*1.6  # Crop Faktor für APS-C
+            fy = float(value)*1.6
+            continue
         if 'ExifImageWidth' == ExifTags.TAGS.get(tag, tag):
             width = int(value)
             x0 = width / 2
@@ -63,6 +67,7 @@ def load_metadata(db: Connection, bild: str) -> None:
         start = s.find('<x:xmpmeta')
         end = s.find('</x:xmpmeta')
         xmp = s[start:end+12].replace("\\n", "\n")
+        # print(xmp)
         if xmp:
             tree = ET.XML(xmp)
             # print(xmp)
@@ -79,7 +84,7 @@ def load_metadata(db: Connection, bild: str) -> None:
 
     fx = fx / 18. * x0
     fy = fy / 18. * x0
-
+    print(model, fx, fy, x0, y0, width, height)
     db.execute(
         "INSERT OR IGNORE INTO kameras (model, fx, fy, x0, y0, pixelx, pixely) VALUES (?,?,?,?,?,?,?)", (model, fx/width, fy/width, x0/width, y0/width, width, height))
     db.execute(
